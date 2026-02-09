@@ -1,0 +1,306 @@
+.file-list {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-list.empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  color: #6c757d;
+  margin: 0;
+}
+
+.empty-state p {
+  color: #6c757d;
+  margin: 0;
+}
+
+.file-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.file-list-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.storage-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.storage-usage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.usage-text {
+  font-size: 0.875rem;
+  color: #6c757d;
+  font-family: 'Courier New', monospace;
+}
+
+.usage-bar {
+  width: 120px;
+  height: 6px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.usage-fill {
+  height: 100%;
+  background: linear-gradient(to right, #28a745, #ffc107, #dc3545);
+  transition: width 0.3s ease;
+}
+
+.clear-all-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clear-all-btn:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.clear-all-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.file-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.file-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.file-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.file-summary {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.file-summary:hover {
+  background-color: #f8f9fa;
+}
+
+.file-icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+}
+
+.file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.file-name {
+  font-weight: 500;
+  color: #2c3e50;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+.file-meta {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.file-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.download-btn,
+.remove-btn,
+.expand-btn {
+  background: none;
+  border: 1px solid transparent;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.download-btn:hover {
+  background-color: #e6f3ff;
+  border-color: #007bff;
+}
+
+.remove-btn:hover {
+  background-color: #ffe6e6;
+  border-color: #dc3545;
+}
+
+.expand-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #6c757d;
+}
+
+.file-details {
+  border-top: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  padding: 1rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background-color: white;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.detail-item .label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.detail-item .value {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+}
+
+.detail-download-btn,
+.detail-direct-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.detail-download-btn:hover {
+  background-color: #0056b3;
+}
+
+.detail-direct-link {
+  background-color: #6c757d;
+}
+
+.detail-direct-link:hover {
+  background-color: #5a6268;
+}
+
+.btn-icon {
+  font-size: 1rem;
+}
+
+.file-list-summary {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+.file-list-summary p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .file-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .storage-info {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .file-summary {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .file-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

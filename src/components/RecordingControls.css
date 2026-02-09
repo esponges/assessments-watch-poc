@@ -139,6 +139,12 @@
   margin-top: 1rem;
 }
 
+.stopped-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
 .record-btn {
   display: flex;
   align-items: center;
@@ -185,6 +191,17 @@
 .record-btn.retry {
   background-color: #007bff;
   color: white;
+}
+
+.record-btn.download {
+  background-color: #28a745;
+  color: white;
+}
+
+.record-btn.download:hover {
+  background-color: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
 }
 
 .record-btn.restart:hover,

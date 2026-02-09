@@ -2,7 +2,9 @@ import { useState } from 'react';
 import CameraPermission from '../components/CameraPermission';
 import VideoPreview from '../components/VideoPreview';
 import RecordingControls from '../components/RecordingControls';
+import FileList from '../components/FileList';
 import { useVideoRecorder } from '../utils/useVideoRecorder';
+import { useFileManager } from '../utils/useFileManager';
 import type { CameraError } from '../types/camera';
 
 const Assessment: React.FC = () => {
@@ -15,6 +17,9 @@ const Assessment: React.FC = () => {
     videoBitsPerSecond: 2500000,
     mimeType: 'video/webm;codecs=vp9'
   });
+
+  // Initialize file manager
+  const fileManager = useFileManager();
 
   const handlePermissionGranted = (stream: MediaStream) => {
     setCameraStream(stream);
@@ -36,6 +41,11 @@ const Assessment: React.FC = () => {
     setIsVideoVisible(prev => !prev);
   };
 
+  const handleRecordingComplete = (blob: Blob, duration: number, mimeType: string) => {
+    const file = fileManager.addFile(blob, duration, mimeType);
+    console.log('Recording added to file manager:', file);
+  };
+
   return (
     <div className="assessment">
       <h1>Assessment</h1>
@@ -55,7 +65,11 @@ const Assessment: React.FC = () => {
             <p>You can start recording your assessment session using the controls below.</p>
           </div>
 
-          <RecordingControls recorder={videoRecorder} />
+          <RecordingControls 
+            recorder={videoRecorder}
+            onRecordingComplete={handleRecordingComplete}
+            autoDownload={true}
+          />
           
           <VideoPreview
             stream={cameraStream}
@@ -64,9 +78,17 @@ const Assessment: React.FC = () => {
             onStreamError={handleVideoStreamError}
           />
 
+          <FileList
+            files={fileManager.files}
+            onDownload={fileManager.downloadFileById}
+            onRemove={fileManager.removeFile}
+            onClearAll={fileManager.clearAllFiles}
+            storageStats={fileManager.getStorageStats()}
+          />
+
           {videoRecorder.recordingResult && (
             <div className="recording-completed">
-              <p>✓ Recording completed successfully! Assessment interface will be implemented in the next step.</p>
+              <p>✓ Recording completed and saved! Assessment interface will be implemented in the next step.</p>
             </div>
           )}
         </div>

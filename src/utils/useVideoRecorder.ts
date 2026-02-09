@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type {
   RecordingState,
   RecordingOptions,
@@ -25,7 +25,7 @@ export const useVideoRecorder = (
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef<number>(0);
-  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
 
@@ -44,10 +44,10 @@ export const useVideoRecorder = (
     chunksRef.current = [];
     setRecordingDuration(0);
     setError(null);
-  }, []);
+  }, [setRecordingDuration, setError]);
 
   // Start recording
-  const startRecording = useCallback(() => {
+  const startRecording = () => {
     if (!stream || !canRecord) {
       setError({
         type: 'START_ERROR',
@@ -130,13 +130,13 @@ export const useVideoRecorder = (
         });
       };
 
-      mediaRecorder.onerror = (event: any) => {
-        console.error('MediaRecorder error:', event.error);
+      mediaRecorder.onerror = (event: unknown) => {
+        console.error('MediaRecorder error:', event);
         setRecordingState('error');
         setError({
           type: 'DATA_ERROR',
-          message: `Recording error: ${event.error?.message || 'Unknown error'}`,
-          originalError: event.error
+          message: `Recording error: ${event instanceof Error ? event.message : 'Unknown error'}`,
+          originalError: event instanceof Error ? event : new Error(String(event))
         });
         cleanup();
       };
@@ -144,19 +144,19 @@ export const useVideoRecorder = (
       // Start recording
       mediaRecorder.start(mergedOptions.timeslice);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to start recording:', err);
       setRecordingState('error');
       setError({
         type: 'START_ERROR',
-        message: `Failed to start recording: ${err.message}`,
-        originalError: err
+        message: `Failed to start recording: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        originalError: err instanceof Error ? err : new Error(String(err))
       });
     }
-  }, [stream, canRecord, recordingState, mergedOptions, cleanup]);
+  };
 
   // Stop recording
-  const stopRecording = useCallback(() => {
+  const stopRecording = () => {
     const mediaRecorder = mediaRecorderRef.current;
     
     if (!mediaRecorder || recordingState !== 'recording') {
@@ -167,16 +167,16 @@ export const useVideoRecorder = (
     try {
       mediaRecorder.stop();
       mediaRecorderRef.current = null;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to stop recording:', err);
       setRecordingState('error');
       setError({
         type: 'STOP_ERROR',
-        message: `Failed to stop recording: ${err.message}`,
-        originalError: err
+        message: `Failed to stop recording: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        originalError: err instanceof Error ? err : new Error(String(err))
       });
     }
-  }, [recordingState]);
+  };
 
   // Clean up on unmount or when stream changes
   useEffect(() => {
@@ -195,6 +195,7 @@ export const useVideoRecorder = (
   // Reset state when stream changes
   useEffect(() => {
     if (recordingState === 'recording') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       stopRecording();
     }
     setRecordingState('idle');

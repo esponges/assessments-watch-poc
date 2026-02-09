@@ -1,11 +1,19 @@
+import { useEffect } from 'react';
 import type { UseVideoRecorderReturn } from '../types/recording';
+import { downloadFile } from '../utils/fileUtils';
 import './RecordingControls.css';
 
 interface RecordingControlsProps {
   recorder: UseVideoRecorderReturn;
+  onRecordingComplete?: (blob: Blob, duration: number, mimeType: string) => void;
+  autoDownload?: boolean;
 }
 
-const RecordingControls: React.FC<RecordingControlsProps> = ({ recorder }) => {
+const RecordingControls: React.FC<RecordingControlsProps> = ({ 
+  recorder, 
+  onRecordingComplete,
+  autoDownload = true 
+}) => {
   const {
     recordingState,
     recordingDuration,
@@ -29,6 +37,31 @@ const RecordingControls: React.FC<RecordingControlsProps> = ({ recorder }) => {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Auto-download when recording completes
+  useEffect(() => {
+    if (recordingResult && recordingState === 'stopped') {
+      // Call the completion callback
+      if (onRecordingComplete && recordingResult.blob) {
+        onRecordingComplete(
+          recordingResult.blob, 
+          recordingResult.duration, 
+          recordingResult.mimeType
+        );
+      }
+
+      // Auto-download if enabled
+      if (autoDownload && recordingResult.blob) {
+        downloadFile(recordingResult.blob, { autoDownload: true });
+      }
+    }
+  }, [recordingResult, recordingState, onRecordingComplete, autoDownload]);
+
+  const handleManualDownload = () => {
+    if (recordingResult?.blob) {
+      downloadFile(recordingResult.blob, { autoDownload: true });
+    }
   };
 
   if (!canRecord) {
@@ -120,13 +153,22 @@ const RecordingControls: React.FC<RecordingControlsProps> = ({ recorder }) => {
         )}
 
         {recordingState === 'stopped' && (
-          <button 
-            onClick={startRecording}
-            className="record-btn restart"
-          >
-            <span className="btn-icon">🔄</span>
-            Record Again
-          </button>
+          <div className="stopped-actions">
+            <button 
+              onClick={handleManualDownload}
+              className="record-btn download"
+            >
+              <span className="btn-icon">⬇️</span>
+              Download Again
+            </button>
+            <button 
+              onClick={startRecording}
+              className="record-btn restart"
+            >
+              <span className="btn-icon">🔄</span>
+              Record Again
+            </button>
+          </div>
         )}
 
         {recordingState === 'error' && (
