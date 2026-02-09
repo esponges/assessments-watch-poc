@@ -79,3 +79,17 @@
   margin: 0.5rem 0;
   padding: 0.25rem 0;
 }
+
+.camera-status {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.camera-status p {
+  margin: 0.5rem 0;
+}
