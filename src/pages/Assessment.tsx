@@ -1,12 +1,20 @@
 import { useState } from 'react';
 import CameraPermission from '../components/CameraPermission';
 import VideoPreview from '../components/VideoPreview';
+import RecordingControls from '../components/RecordingControls';
+import { useVideoRecorder } from '../utils/useVideoRecorder';
 import type { CameraError } from '../types/camera';
 
 const Assessment: React.FC = () => {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<CameraError | null>(null);
   const [isVideoVisible, setIsVideoVisible] = useState(true);
+
+  // Initialize video recorder
+  const videoRecorder = useVideoRecorder(cameraStream, {
+    videoBitsPerSecond: 2500000,
+    mimeType: 'video/webm;codecs=vp9'
+  });
 
   const handlePermissionGranted = (stream: MediaStream) => {
     setCameraStream(stream);
@@ -43,10 +51,11 @@ const Assessment: React.FC = () => {
       ) : (
         <div>
           <div className="camera-status">
-            <p>✓ Camera access granted. Live video preview is available.</p>
-            <p>You can toggle the video preview visibility using the button in the bottom-right corner.</p>
-            <p>Assessment interface will be implemented in the next step.</p>
+            <p>✓ Camera access granted. Monitoring system is ready.</p>
+            <p>You can start recording your assessment session using the controls below.</p>
           </div>
+
+          <RecordingControls recorder={videoRecorder} />
           
           <VideoPreview
             stream={cameraStream}
@@ -54,6 +63,12 @@ const Assessment: React.FC = () => {
             onToggleVisibility={handleToggleVideoVisibility}
             onStreamError={handleVideoStreamError}
           />
+
+          {videoRecorder.recordingResult && (
+            <div className="recording-completed">
+              <p>✓ Recording completed successfully! Assessment interface will be implemented in the next step.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

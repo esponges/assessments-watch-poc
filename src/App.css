@@ -93,3 +93,18 @@
 .camera-status p {
   margin: 0.5rem 0;
 }
+
+.recording-completed {
+  background-color: #d1ecf1;
+  border: 1px solid #bee5eb;
+  color: #0c5460;
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.recording-completed p {
+  margin: 0;
+  font-weight: 500;
+}

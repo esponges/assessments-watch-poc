@@ -1,0 +1,227 @@
+.recording-controls {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.recording-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.recording-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.recording-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background-color: #dc3545;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0.3;
+  }
+}
+
+.status-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.recording-status.idle .status-text {
+  color: #6c757d;
+}
+
+.recording-status.recording .status-text {
+  color: #dc3545;
+}
+
+.recording-status.stopped .status-text {
+  color: #28a745;
+}
+
+.recording-status.error .status-text {
+  color: #dc3545;
+}
+
+.recording-info {
+  margin: 1rem 0;
+}
+
+.duration-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 4px solid #dc3545;
+}
+
+.duration-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.duration-time {
+  font-family: 'Courier New', monospace;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #dc3545;
+}
+
+.recording-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: #d4edda;
+  border-radius: 4px;
+  border-left: 4px solid #28a745;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-item .label {
+  font-weight: 500;
+  color: #155724;
+}
+
+.summary-item .value {
+  font-family: 'Courier New', monospace;
+  color: #155724;
+}
+
+.error-message {
+  padding: 1rem;
+  background-color: #f8d7da;
+  color: #721c24;
+  border-radius: 4px;
+  border-left: 4px solid #dc3545;
+}
+
+.recording-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.record-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 150px;
+  justify-content: center;
+}
+
+.record-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.record-btn.start {
+  background-color: #dc3545;
+  color: white;
+}
+
+.record-btn.start:hover:not(:disabled) {
+  background-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+}
+
+.record-btn.stop {
+  background-color: #6c757d;
+  color: white;
+}
+
+.record-btn.stop:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
+}
+
+.record-btn.restart,
+.record-btn.retry {
+  background-color: #007bff;
+  color: white;
+}
+
+.record-btn.restart:hover,
+.record-btn.retry:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.btn-icon {
+  font-size: 1.1em;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .recording-controls {
+    padding: 1rem;
+  }
+  
+  .recording-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .recording-summary {
+    gap: 0.25rem;
+  }
+  
+  .summary-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .record-btn {
+    min-width: 120px;
+    padding: 0.625rem 1.25rem;
+  }
+}
