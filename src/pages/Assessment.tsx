@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import CameraPermission from '../components/CameraPermission';
+import VideoPreview from '../components/VideoPreview';
 import type { CameraError } from '../types/camera';
 
 const Assessment: React.FC = () => {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<CameraError | null>(null);
+  const [isVideoVisible, setIsVideoVisible] = useState(true);
 
   const handlePermissionGranted = (stream: MediaStream) => {
     setCameraStream(stream);
@@ -16,6 +18,14 @@ const Assessment: React.FC = () => {
     setCameraError(error);
     setCameraStream(null);
     console.error('Camera permission denied:', error);
+  };
+
+  const handleVideoStreamError = (errorMessage: string) => {
+    console.error('Video stream error:', errorMessage);
+  };
+
+  const handleToggleVideoVisibility = () => {
+    setIsVideoVisible(prev => !prev);
   };
 
   return (
@@ -33,9 +43,17 @@ const Assessment: React.FC = () => {
       ) : (
         <div>
           <div className="camera-status">
-            <p>✓ Camera access granted. Monitoring is ready.</p>
+            <p>✓ Camera access granted. Live video preview is available.</p>
+            <p>You can toggle the video preview visibility using the button in the bottom-right corner.</p>
             <p>Assessment interface will be implemented in the next step.</p>
           </div>
+          
+          <VideoPreview
+            stream={cameraStream}
+            isVisible={isVideoVisible}
+            onToggleVisibility={handleToggleVideoVisibility}
+            onStreamError={handleVideoStreamError}
+          />
         </div>
       )}
     </div>
