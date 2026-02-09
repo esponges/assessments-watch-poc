@@ -3,8 +3,10 @@ import CameraPermission from '../components/CameraPermission';
 import VideoPreview from '../components/VideoPreview';
 import RecordingControls from '../components/RecordingControls';
 import FileList from '../components/FileList';
+import AIStatus from '../components/AIStatus';
 import { useVideoRecorder } from '../utils/useVideoRecorder';
 import { useFileManager } from '../utils/useFileManager';
+import { useAI } from '../utils/useAI';
 import type { CameraError } from '../types/camera';
 
 const Assessment: React.FC = () => {
@@ -20,6 +22,9 @@ const Assessment: React.FC = () => {
 
   // Initialize file manager
   const fileManager = useFileManager();
+
+  // Initialize AI system
+  const ai = useAI();
 
   const handlePermissionGranted = (stream: MediaStream) => {
     setCameraStream(stream);
@@ -64,6 +69,8 @@ const Assessment: React.FC = () => {
             <p>✓ Camera access granted. Monitoring system is ready.</p>
             <p>You can start recording your assessment session using the controls below.</p>
           </div>
+
+          <AIStatus ai={ai} />
 
           <RecordingControls 
             recorder={videoRecorder}
