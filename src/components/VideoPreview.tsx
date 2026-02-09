@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import type { VideoPreviewProps, VideoPreviewState } from '../types/video';
+import type { FrameData } from '../types/frameProcessing';
+import { useFrameProcessor } from '../utils/useFrameProcessor';
+import FrameProcessorStatus from './FrameProcessorStatus';
 import './VideoPreview.css';
 
 const VideoPreview: React.FC<VideoPreviewProps> = ({
   stream,
   isVisible = true,
   onToggleVisibility,
-  onStreamError
+  onStreamError,
+  enableFrameProcessing = false,
+  onFrameProcessed
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoState, setVideoState] = useState<VideoPreviewState>({
@@ -14,6 +19,26 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     hasError: false,
     errorMessage: ''
   });
+
+  // Frame processing
+  const frameProcessor = useFrameProcessor(
+    enableFrameProcessing ? videoRef.current : null,
+    {
+      onFrame: onFrameProcessed,
+      onError: (error) => {
+        console.error('Frame processing error:', error);
+        onStreamError?.(error.message);
+      },
+      config: {
+        interval: 500, // 2 FPS
+        targetWidth: 640,
+        targetHeight: 480,
+        maintainAspectRatio: true,
+        enableDebugCanvas: false,
+        maxFrameRate: 5
+      }
+    }
+  );
 
   useEffect(() => {
     const video = videoRef.current;
@@ -142,8 +167,39 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             <div className="status-dot"></div>
             {videoState.isPlaying ? 'Live' : 'Stopped'}
           </div>
+          {enableFrameProcessing && frameProcessor.stats && (
+            <div className="frame-stats">
+              <span className="frame-fps">{frameProcessor.stats.currentFPS.toFixed(1)} FPS</span>
+              <span className="frame-count">{frameProcessor.stats.processedFrames} frames</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {enableFrameProcessing && isVisible && (
+        <div className="frame-processing-overlay">
+          <FrameProcessorStatus
+            isProcessing={frameProcessor.isProcessing}
+            stats={frameProcessor.stats}
+            config={frameProcessor.stats ? {
+              interval: 500,
+              targetWidth: 640,
+              targetHeight: 480,
+              maintainAspectRatio: true,
+              enableDebugCanvas: false,
+              maxFrameRate: 5,
+              skipFramesWhenBusy: true
+            } : null}
+            onStart={frameProcessor.startProcessing}
+            onStop={frameProcessor.stopProcessing}
+            onPause={frameProcessor.pauseProcessing}
+            onResume={frameProcessor.resumeProcessing}
+            onConfigUpdate={frameProcessor.updateConfig}
+            error={frameProcessor.error}
+            compact={true}
+          />
+        </div>
+      )}
     </div>
   );
 };

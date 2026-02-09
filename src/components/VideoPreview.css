@@ -125,6 +125,32 @@
   }
 }
 
+.frame-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.frame-fps,
+.frame-count {
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Courier New', monospace;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 1px 4px;
+  border-radius: 2px;
+  line-height: 1.2;
+}
+
+.frame-processing-overlay {
+  position: absolute;
+  bottom: -60px;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .video-preview {
@@ -155,5 +181,9 @@
   .toggle-visibility-btn {
     padding: 4px 6px;
     font-size: 0.875rem;
+  }
+  
+  .frame-processing-overlay {
+    bottom: -50px;
   }
 }
