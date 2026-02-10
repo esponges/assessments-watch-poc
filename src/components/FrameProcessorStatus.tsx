@@ -53,7 +53,7 @@ const FrameProcessorStatus: React.FC<FrameProcessorStatusProps> = ({
     return num?.toFixed(decimals) || '0';
   };
 
-  const handleConfigChange = (key: keyof FrameExtractionConfig, value: any) => {
+  const handleConfigChange = (key: keyof FrameExtractionConfig, value: number | boolean) => {
     setTempConfig(prev => ({ ...prev, [key]: value }));
   };
 
@@ -221,6 +221,17 @@ const FrameProcessorStatus: React.FC<FrameProcessorStatusProps> = ({
                   onChange={(e) => handleConfigChange('skipFramesWhenBusy', e.target.checked)}
                 />
                 Skip When Busy
+              </label>
+            </div>
+
+            <div className="config-item checkbox">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={tempConfig.enableFaceDetection ?? config.enableFaceDetection}
+                  onChange={(e) => handleConfigChange('enableFaceDetection', e.target.checked)}
+                />
+                Face Detection
               </label>
             </div>
           </div>

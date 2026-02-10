@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { VideoPreviewProps, VideoPreviewState } from '../types/video';
 import type { FrameData } from '../types/frameProcessing';
+import type { FaceDetectionResult } from '../types/faceDetection';
 import { useFrameProcessor } from '../utils/useFrameProcessor';
 import FrameProcessorStatus from './FrameProcessorStatus';
+import FaceDetectionOverlay from './FaceDetectionOverlay';
 import './VideoPreview.css';
 
 const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -19,12 +21,27 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     hasError: false,
     errorMessage: ''
   });
+  const [latestFaceDetection, setLatestFaceDetection] = useState<FaceDetectionResult | null>(null);
 
   // Frame processing
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+  
+  useEffect(() => {
+    setVideoElement(videoRef.current);
+  }, [enableFrameProcessing]);
+
   const frameProcessor = useFrameProcessor(
-    enableFrameProcessing ? videoRef.current : null,
+    enableFrameProcessing ? videoElement : null,
     {
-      onFrame: onFrameProcessed,
+      onFrame: (frameData: FrameData) => {
+        // Update face detection results
+        if (frameData.faceDetection) {
+          setLatestFaceDetection(frameData.faceDetection);
+        }
+        
+        // Call parent callback
+        onFrameProcessed?.(frameData);
+      },
       onError: (error) => {
         console.error('Frame processing error:', error);
         onStreamError?.(error.message);
@@ -35,7 +52,8 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         targetHeight: 480,
         maintainAspectRatio: true,
         enableDebugCanvas: false,
-        maxFrameRate: 5
+        maxFrameRate: 5,
+        enableFaceDetection: true
       }
     }
   );
@@ -142,6 +160,15 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
           playsInline
           className="video-element"
         />
+
+        {enableFrameProcessing && latestFaceDetection && (
+          <FaceDetectionOverlay
+            faceDetection={latestFaceDetection}
+            videoWidth={240}
+            videoHeight={180}
+            isVisible={isVisible}
+          />
+        )}
         
         {videoState.hasError && (
           <div className="video-error-overlay">
@@ -188,7 +215,8 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
               maintainAspectRatio: true,
               enableDebugCanvas: false,
               maxFrameRate: 5,
-              skipFramesWhenBusy: true
+              skipFramesWhenBusy: true,
+              enableFaceDetection: true
             } : null}
             onStart={frameProcessor.startProcessing}
             onStop={frameProcessor.stopProcessing}

@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
+import { createFaceDetector, type FaceDetector } from './faceDetector';
 import type {
   FrameData,
   FrameExtractionConfig,
@@ -9,6 +10,7 @@ import type {
   ResizeOptions,
   ResizeResult
 } from '../types/frameProcessing';
+import type { FaceDetectionOptions } from '../types/faceDetection';
 
 // Default configuration
 const DEFAULT_CONFIG: FrameExtractionConfig = {
@@ -18,7 +20,8 @@ const DEFAULT_CONFIG: FrameExtractionConfig = {
   maintainAspectRatio: true,
   enableDebugCanvas: false,
   maxFrameRate: 5, // Maximum 5 FPS for performance
-  skipFramesWhenBusy: true
+  skipFramesWhenBusy: true,
+  enableFaceDetection: true // Enable face detection by default
 };
 
 // Calculate optimal dimensions for resizing
@@ -151,6 +154,7 @@ export const createFrameData = (
 export class FrameExtractor implements FrameProcessor {
   private videoElement: HTMLVideoElement;
   private canvasUtils: CanvasUtils;
+  private faceDetector?: FaceDetector;
   private animationId: number | null = null;
   private lastFrameTime: number = 0;
   private intervalId: ReturnType<typeof setInterval> | null = null;
@@ -192,11 +196,41 @@ export class FrameExtractor implements FrameProcessor {
       this.config.enableDebugCanvas
     );
 
+    // Initialize face detector if enabled
+    if (this.config.enableFaceDetection) {
+      this.initializeFaceDetection();
+    }
+
     console.log('FrameExtractor initialized:', {
       targetWidth,
       targetHeight,
       config: this.config
     });
+  }
+
+  private async initializeFaceDetection(): Promise<void> {
+    try {
+      const faceDetectionOptions: FaceDetectionOptions = {
+        config: {
+          maxFaces: 5,
+          scoreThreshold: 0.7,
+          enableLandmarks: true,
+          debugMode: false
+        },
+        onError: (error) => {
+          console.error('Face detection error:', error);
+          this.onErrorCallback?.(error);
+        }
+      };
+
+      this.faceDetector = createFaceDetector(faceDetectionOptions);
+      await this.faceDetector.initialize();
+      
+      console.log('Face detector initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize face detector:', error);
+      this.faceDetector = undefined;
+    }
   }
 
   start(): void {
@@ -215,7 +249,10 @@ export class FrameExtractor implements FrameProcessor {
 
     // Use interval-based extraction for better control
     this.intervalId = setInterval(() => {
-      this.captureFrame();
+      this.captureFrame().catch((error) => {
+        console.error('Frame capture error:', error);
+        this.onErrorCallback?.(error);
+      });
     }, this.config.interval);
   }
 
@@ -249,7 +286,10 @@ export class FrameExtractor implements FrameProcessor {
     if (!this.isRunning) return;
     
     this.intervalId = setInterval(() => {
-      this.captureFrame();
+      this.captureFrame().catch((error) => {
+        console.error('Frame capture error:', error);
+        this.onErrorCallback?.(error);
+      });
     }, this.config.interval);
   }
 
@@ -272,10 +312,20 @@ export class FrameExtractor implements FrameProcessor {
       }
     }
 
+    // Handle face detection config changes
+    if (newConfig.enableFaceDetection !== undefined) {
+      if (newConfig.enableFaceDetection && !this.faceDetector) {
+        this.initializeFaceDetection().catch(console.error);
+      } else if (!newConfig.enableFaceDetection && this.faceDetector) {
+        this.faceDetector.dispose();
+        this.faceDetector = undefined;
+      }
+    }
+
     console.log('FrameExtractor config updated:', this.config);
   }
 
-  private captureFrame(): void {
+  private async captureFrame(): Promise<void> {
     try {
       const now = performance.now();
       
@@ -341,6 +391,16 @@ export class FrameExtractor implements FrameProcessor {
 
       // Create frame data
       const frameData = createFrameData(imageData, now, true);
+
+      // Run face detection if enabled
+      if (this.config.enableFaceDetection && this.faceDetector) {
+        try {
+          const faceDetectionResult = await this.faceDetector.detectFaces(imageData, now);
+          frameData.faceDetection = faceDetectionResult;
+        } catch (error) {
+          console.error('Face detection failed:', error);
+        }
+      }
 
       // Update stats
       this.updateStats(now);
@@ -427,6 +487,12 @@ export class FrameExtractor implements FrameProcessor {
 
   private cleanup(): void {
     this.removeDebugCanvas();
+    
+    // Dispose face detector
+    if (this.faceDetector) {
+      this.faceDetector.dispose();
+      this.faceDetector = undefined;
+    }
     
     // Dispose of any TensorFlow tensors if needed
     // This will be handled by the consuming code

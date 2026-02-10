@@ -1,4 +1,5 @@
 import type * as tf from '@tensorflow/tfjs';
+import type { FaceDetectionResult } from './faceDetection';
 
 export interface FrameData {
   imageData: ImageData;
@@ -7,6 +8,7 @@ export interface FrameData {
   width: number;
   height: number;
   frameId: string;
+  faceDetection?: FaceDetectionResult;
 }
 
 export interface FrameExtractionConfig {
@@ -17,6 +19,7 @@ export interface FrameExtractionConfig {
   enableDebugCanvas: boolean;
   maxFrameRate: number; // maximum frames per second
   skipFramesWhenBusy: boolean; // skip frames if processing is behind
+  enableFaceDetection: boolean; // enable real-time face detection
 }
 
 export interface FrameProcessingStats {

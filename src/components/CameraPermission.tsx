@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PermissionStatus, CameraError, CameraPermissionProps } from '../types/camera';
+import type { PermissionStatus, CameraError, CameraPermissionProps } from '../types/camera';
 import './CameraPermission.css';
 
 const CameraPermission: React.FC<CameraPermissionProps> = ({
