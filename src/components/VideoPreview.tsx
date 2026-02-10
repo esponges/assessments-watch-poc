@@ -9,6 +9,7 @@ import { useFaceCountLogger } from '../utils/useFaceCountLogger';
 import { useEventCollector } from '../utils/useEventCollector';
 import { useMultiplePersonDetector } from '../utils/useMultiplePersonDetector';
 import { useGazeEstimator } from '../utils/useGazeEstimator';
+import { useLookingAwayDetector } from '../utils/useLookingAwayDetector';
 import FrameProcessorStatus from './FrameProcessorStatus';
 import FaceDetectionOverlay from './FaceDetectionOverlay';
 import FaceCountDisplay from './FaceCountDisplay';
@@ -17,6 +18,7 @@ import ScoreDisplay from './ScoreDisplay';
 import MultiplePersonIndicator from './MultiplePersonIndicator';
 import GazeIndicator from './GazeIndicator';
 import GazeCalibration from './GazeCalibration';
+import LookingAwayTimer from './LookingAwayTimer';
 import './VideoPreview.css';
 
 const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -74,19 +76,62 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       // Add gaze events to event collector
       if (eventCollector.isActive && estimation.isLookingAway) {
         eventCollector.addEvent({
-          type: 'gaze_direction_changed',
+          type: 'gaze_direction_change',
           confidence: estimation.confidence,
-          gazeDirection: {
-            x: estimation.gazePoint.x,
-            y: estimation.gazePoint.y
-          },
-          deviation: estimation.deviation,
-          isLookingAway: estimation.isLookingAway
+          gazeData: {
+            direction: {
+              x: estimation.gazePoint.x,
+              y: estimation.gazePoint.y
+            },
+            deviation: estimation.deviation,
+            isLookingAway: estimation.isLookingAway
+          }
         });
       }
     },
     onError: (error) => {
       console.error('Gaze estimator error:', error);
+      onStreamError?.(error.message);
+    },
+    autoStart: enableFrameProcessing
+  });
+
+  // Looking away detection system
+  const lookingAwayDetector = useLookingAwayDetector({
+    config: {
+      lookAwayThreshold: 30, // degrees
+      sustainedThreshold: 5000, // 5 seconds
+      confidenceThreshold: 0.6,
+      scoringThreshold: 5000, // 5 seconds for scoring
+      resetGracePeriod: 500,
+      maxCumulativeTime: 300000,
+      pointsPerScoringEvent: 3 // +3 points per spec
+    },
+    onLookingAwayStart: (event) => {
+      console.log('Looking away started:', event);
+    },
+    onLookingAwayEnd: (event) => {
+      console.log('Looking away ended:', event);
+    },
+    onLookingAwayScoring: (event) => {
+      console.log('Looking away scoring:', event);
+      
+      // Add to event collection system
+      if (eventCollector.isActive) {
+        eventCollector.addEvent({
+          type: 'looking_away_extended',
+          confidence: event.confidence,
+          lookAwayDuration: event.duration,
+          direction: {
+            x: event.direction.includes('left') ? -1 : event.direction.includes('right') ? 1 : 0,
+            y: event.direction.includes('up') ? -1 : event.direction.includes('down') ? 1 : 0
+          },
+          severity: event.severity
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Looking away detector error:', error);
       onStreamError?.(error.message);
     },
     autoStart: enableFrameProcessing
@@ -205,6 +250,13 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     },
     autoStart: enableFrameProcessing
   });
+
+  // Process looking away detection when gaze estimation updates
+  useEffect(() => {
+    if (gazeEstimator.gazeEstimation && lookingAwayDetector.isActive) {
+      lookingAwayDetector.processGazeEstimation(gazeEstimator.gazeEstimation);
+    }
+  }, [gazeEstimator.gazeEstimation, lookingAwayDetector]);
 
   const frameProcessor = useFrameProcessor(
     enableFrameProcessing ? videoElement : null,
@@ -448,6 +500,17 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             showZone={true}
             showDeviation={true}
             showConfidence={true}
+          />
+
+          {/* Looking Away Timer */}
+          <LookingAwayTimer
+            timerState={lookingAwayDetector.timerState}
+            warning={lookingAwayDetector.warning}
+            stats={lookingAwayDetector.stats}
+            isVisible={isVisible}
+            compact={true}
+            showProgress={true}
+            showStats={false}
           />
 
           {/* Event Monitor */}

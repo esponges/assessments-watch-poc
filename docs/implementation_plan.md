@@ -570,11 +570,11 @@ Test with deliberate looking away scenarios: reading notes, getting help, normal
 ```
 
 ### Deliverables
-- [ ] Looking away is detected when gaze deviates significantly
-- [ ] Timer accurately tracks duration of looking away
-- [ ] Events are generated after 5+ seconds of looking away
-- [ ] Scoring system awards +3 points for extended looking away
-- [ ] Visual feedback helps users understand when they're looking away
+- [x] Looking away is detected when gaze deviates significantly
+- [x] Timer accurately tracks duration of looking away
+- [x] Events are generated after 5+ seconds of looking away
+- [x] Scoring system awards +3 points for extended looking away
+- [x] Visual feedback helps users understand when they're looking away
 
 ---
 
