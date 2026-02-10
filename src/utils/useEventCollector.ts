@@ -183,14 +183,7 @@ export const useEventCollector = (
     return () => {
       dispose();
     };
-  }, [options.autoStart, initialize, dispose]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      dispose();
-    };
-  }, [dispose]);
+  }, [options.autoStart]);
 
   return {
     addEvent,

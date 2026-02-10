@@ -10,6 +10,7 @@ import { useEventCollector } from '../utils/useEventCollector';
 import { useMultiplePersonDetector } from '../utils/useMultiplePersonDetector';
 import { useGazeEstimator } from '../utils/useGazeEstimator';
 import { useLookingAwayDetector } from '../utils/useLookingAwayDetector';
+import { useScoreManager } from '../utils/useScoreManager';
 import FrameProcessorStatus from './FrameProcessorStatus';
 import FaceDetectionOverlay from './FaceDetectionOverlay';
 import FaceCountDisplay from './FaceCountDisplay';
@@ -19,6 +20,7 @@ import MultiplePersonIndicator from './MultiplePersonIndicator';
 import GazeIndicator from './GazeIndicator';
 import GazeCalibration from './GazeCalibration';
 import LookingAwayTimer from './LookingAwayTimer';
+import ScoringConfig from './ScoringConfig';
 import './VideoPreview.css';
 
 const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -37,6 +39,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   });
   const [latestFaceDetection, setLatestFaceDetection] = useState<FaceDetectionResult | null>(null);
   const [showCalibration, setShowCalibration] = useState(false);
+  const [showScoringConfig, setShowScoringConfig] = useState(false);
 
   // Frame processing
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
@@ -50,6 +53,45 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     maxEvents: 1000,
     autoCleanup: true,
     enableValidation: true,
+    autoStart: enableFrameProcessing
+  });
+
+  // Score management system
+  const scoreManager = useScoreManager({
+    config: {
+      multipleFacePoints: 10, // +10 points per spec
+      lookingAwayPoints: 3,   // +3 points per spec
+      lookingAwayThreshold: 5000, // 5 seconds
+      flagThreshold: 8, // 8+ points triggers flag per spec
+      scoreDecayEnabled: false,
+      scoreDecayRate: 0.5,
+      maxScore: 100
+    },
+    onScoreChange: (change, stats) => {
+      console.log('Score changed:', change, stats);
+    },
+    onFlagRaised: (flag, stats) => {
+      console.log('Flag raised:', flag, stats);
+      
+      // Add flag event to event collector
+      if (eventCollector.isActive) {
+        eventCollector.addEvent({
+          type: 'flag_raised',
+          confidence: 1.0,
+          flagData: {
+            flagLevel: flag.level,
+            reason: flag.reason,
+            score: flag.score,
+            triggeringEvents: flag.triggeringEvents,
+            automaticFlag: true
+          }
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Score manager error:', error);
+      onStreamError?.(error.message);
+    },
     autoStart: enableFrameProcessing
   });
 
@@ -118,16 +160,24 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       
       // Add to event collection system
       if (eventCollector.isActive) {
-        eventCollector.addEvent({
-          type: 'looking_away_extended',
+        const monitoringEvent = {
+          type: 'looking_away_extended' as const,
           confidence: event.confidence,
           lookAwayDuration: event.duration,
           direction: {
             x: event.direction.includes('left') ? -1 : event.direction.includes('right') ? 1 : 0,
             y: event.direction.includes('up') ? -1 : event.direction.includes('down') ? 1 : 0
           },
-          severity: event.severity
-        });
+          severity: event.severity,
+          duration: event.duration // Add duration for scoring
+        };
+        
+        eventCollector.addEvent(monitoringEvent);
+        
+        // Process through score manager
+        if (scoreManager.isActive) {
+          scoreManager.processEvent(monitoringEvent);
+        }
       }
     },
     onError: (error) => {
@@ -147,13 +197,20 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       // Add to event collection system
       if (eventCollector.isActive) {
         if (event.type === 'multiple_person_start') {
-          eventCollector.addEvent({
-            type: 'multiple_faces_detected',
+          const monitoringEvent = {
+            type: 'multiple_faces_detected' as const,
             confidence: event.confidence,
             faceCount: event.faceCount,
             previousCount: 1, // Assuming single person before
             sustainedDuration: event.sustained ? event.duration : undefined
-          });
+          };
+          
+          eventCollector.addEvent(monitoringEvent);
+          
+          // Process through score manager
+          if (scoreManager.isActive) {
+            scoreManager.processEvent(monitoringEvent);
+          }
         } else if (event.type === 'multiple_person_end') {
           eventCollector.addEvent({
             type: 'single_face_restored',
@@ -415,8 +472,8 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
           </div>
         )}
 
-        {onToggleVisibility && (
-          <div className="video-controls">
+        <div className="video-controls">
+          {onToggleVisibility && (
             <button 
               onClick={onToggleVisibility}
               className="toggle-visibility-btn"
@@ -424,8 +481,29 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             >
               {isVisible ? '👁️' : '👁️‍🗨️'}
             </button>
-          </div>
-        )}
+          )}
+          
+          {enableFrameProcessing && (
+            <>
+              <button 
+                onClick={() => setShowCalibration(true)}
+                className="calibration-btn"
+                title="Calibrate gaze tracking"
+                disabled={!gazeEstimator.isModelLoaded}
+              >
+                🎯
+              </button>
+              
+              <button 
+                onClick={() => setShowScoringConfig(!showScoringConfig)}
+                className="config-btn"
+                title="Configure scoring system"
+              >
+                ⚙️
+              </button>
+            </>
+          )}
+        </div>
 
         <div className="video-info">
           <div className={`status-indicator ${videoState.isPlaying ? 'playing' : 'stopped'}`}>
@@ -485,10 +563,14 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
 
           {/* Score Display */}
           <ScoreDisplay
-            scoreStatus={multiplePersonDetector.scoreStatus}
+            stats={scoreManager.stats}
+            summary={scoreManager.summary}
+            currentScore={scoreManager.currentScore}
+            flags={scoreManager.flags}
             isVisible={isVisible}
             compact={true}
             showHistory={false}
+            showBreakdown={true}
           />
 
           {/* Gaze Indicator */}
@@ -512,6 +594,19 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             showProgress={true}
             showStats={false}
           />
+          
+          {/* Scoring Configuration */}
+          {showScoringConfig && scoreManager.state && (
+            <ScoringConfig
+              config={scoreManager.state.config}
+              onConfigChange={(newConfig) => {
+                scoreManager.updateConfig(newConfig);
+              }}
+              isVisible={isVisible}
+              compact={false}
+              showPresets={true}
+            />
+          )}
 
           {/* Event Monitor */}
           <EventMonitor

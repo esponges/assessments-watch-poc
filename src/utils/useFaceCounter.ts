@@ -167,14 +167,6 @@ export const useFaceCounter = (
     };
   }, [autoStart, initialize]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      setIsActive(false);
-      counterRef.current = null;
-    };
-  }, []);
-
   return {
     processDetection,
     updateConfig,

@@ -197,7 +197,7 @@ export const useGazeEstimator = (
       faceMeshModelRef.current = null;
       gazeEstimatorRef.current = null;
     };
-  }, [autoStart, initialize]);
+  }, [autoStart]);
 
   // Cleanup on unmount
   useEffect(() => {

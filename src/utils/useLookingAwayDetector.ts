@@ -229,14 +229,6 @@ export const useLookingAwayDetector = (
     };
   }, [autoStart, initialize]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      detectorRef.current = null;
-      setIsActive(false);
-    };
-  }, []);
-
   return {
     processGazeEstimation,
     getStatus,

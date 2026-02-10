@@ -621,11 +621,11 @@ Integrate with existing EventCollector to ensure all events contribute to scorin
 ```
 
 ### Deliverables
-- [ ] Score correctly aggregates from multiple detection types
-- [ ] Flagging triggers at appropriate thresholds (8+ points)
-- [ ] Score visualization shows real-time updates
-- [ ] Flag priority levels are calculated correctly
-- [ ] Score configuration allows for tuning thresholds
+- [x] Score correctly aggregates from multiple detection types
+- [x] Flagging triggers at appropriate thresholds (8+ points)
+- [x] Score visualization shows real-time updates
+- [x] Flag priority levels are calculated correctly
+- [x] Score configuration allows for tuning thresholds
 
 ---
 

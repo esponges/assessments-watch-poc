@@ -155,14 +155,7 @@ export const useFaceDetection = (
     return () => {
       dispose();
     };
-  }, [autoStart, initialize, dispose]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      dispose();
-    };
-  }, [dispose]);
+  }, [autoStart]);
 
   return {
     initialize,
