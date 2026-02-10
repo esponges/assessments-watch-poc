@@ -11,6 +11,7 @@ import { useMultiplePersonDetector } from '../utils/useMultiplePersonDetector';
 import { useGazeEstimator } from '../utils/useGazeEstimator';
 import { useLookingAwayDetector } from '../utils/useLookingAwayDetector';
 import { useScoreManager } from '../utils/useScoreManager';
+import { useAssessmentLogger } from '../utils/useAssessmentLogger';
 import FrameProcessorStatus from './FrameProcessorStatus';
 import FaceDetectionOverlay from './FaceDetectionOverlay';
 import FaceCountDisplay from './FaceCountDisplay';
@@ -69,9 +70,19 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     },
     onScoreChange: (change, stats) => {
       console.log('Score changed:', change, stats);
+      
+      // Update assessment logger with new scoring stats
+      if (assessmentLogger.isSessionActive) {
+        assessmentLogger.updateScoringStats(stats);
+      }
     },
     onFlagRaised: (flag, stats) => {
       console.log('Flag raised:', flag, stats);
+      
+      // Add flag to assessment logger
+      if (assessmentLogger.isSessionActive) {
+        assessmentLogger.addFlag(flag);
+      }
       
       // Add flag event to event collector
       if (eventCollector.isActive) {
@@ -90,6 +101,32 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     },
     onError: (error) => {
       console.error('Score manager error:', error);
+      onStreamError?.(error.message);
+    },
+    autoStart: enableFrameProcessing
+  });
+
+  // Assessment JSON logging system
+  const assessmentLogger = useAssessmentLogger({
+    config: {
+      enableRealTimeLogging: true,
+      autoGenerateIds: true,
+      validateJsonSchema: true,
+      includeDetailedMetadata: true,
+      compressOutput: false,
+      maxEventHistory: 1000,
+      eventDeduplication: true,
+      timestampPrecision: 'milliseconds',
+      includeSystemEvents: true,
+      anonymizeData: false
+    },
+    assessmentId: `assessment_${Date.now()}`,
+    studentId: `student_${Math.random().toString(36).substr(2, 8)}`,
+    onLogGenerated: (log) => {
+      console.log('Assessment log generated:', log);
+    },
+    onError: (error) => {
+      console.error('Assessment logger error:', error);
       onStreamError?.(error.message);
     },
     autoStart: enableFrameProcessing
@@ -174,6 +211,11 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         
         eventCollector.addEvent(monitoringEvent);
         
+        // Add to assessment logger
+        if (assessmentLogger.isSessionActive) {
+          assessmentLogger.addEvent(monitoringEvent);
+        }
+        
         // Process through score manager
         if (scoreManager.isActive) {
           scoreManager.processEvent(monitoringEvent);
@@ -207,17 +249,29 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
           
           eventCollector.addEvent(monitoringEvent);
           
+          // Add to assessment logger
+          if (assessmentLogger.isSessionActive) {
+            assessmentLogger.addEvent(monitoringEvent);
+          }
+          
           // Process through score manager
           if (scoreManager.isActive) {
             scoreManager.processEvent(monitoringEvent);
           }
         } else if (event.type === 'multiple_person_end') {
-          eventCollector.addEvent({
-            type: 'single_face_restored',
+          const endEvent = {
+            type: 'single_face_restored' as const,
             confidence: event.confidence,
             previousCount: event.faceCount,
             multipleFacesDuration: event.duration
-          });
+          };
+          
+          eventCollector.addEvent(endEvent);
+          
+          // Add to assessment logger
+          if (assessmentLogger.isSessionActive) {
+            assessmentLogger.addEvent(endEvent);
+          }
         }
       }
     },
@@ -500,6 +554,29 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
                 title="Configure scoring system"
               >
                 ⚙️
+              </button>
+              
+              <button 
+                onClick={() => assessmentLogger.downloadLog('json-pretty')}
+                className="download-log-btn"
+                title="Download assessment log (JSON)"
+                disabled={!assessmentLogger.isSessionActive}
+              >
+                📄
+              </button>
+              
+              <button 
+                onClick={() => {
+                  if (assessmentLogger.isSessionActive) {
+                    const log = assessmentLogger.endSession();
+                    console.log('Assessment session ended:', log);
+                  }
+                }}
+                className="end-session-btn"
+                title="End assessment session"
+                disabled={!assessmentLogger.isSessionActive}
+              >
+                🏁
               </button>
             </>
           )}
