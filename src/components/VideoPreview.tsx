@@ -2,9 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import type { VideoPreviewProps, VideoPreviewState } from '../types/video';
 import type { FrameData } from '../types/frameProcessing';
 import type { FaceDetectionResult } from '../types/faceDetection';
+import type { FaceCountEvent } from '../types/faceCounter';
 import { useFrameProcessor } from '../utils/useFrameProcessor';
+import { useFaceCounter } from '../utils/useFaceCounter';
+import { useFaceCountLogger } from '../utils/useFaceCountLogger';
+import { useEventCollector } from '../utils/useEventCollector';
 import FrameProcessorStatus from './FrameProcessorStatus';
 import FaceDetectionOverlay from './FaceDetectionOverlay';
+import FaceCountDisplay from './FaceCountDisplay';
+import EventMonitor from './EventMonitor';
 import './VideoPreview.css';
 
 const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -30,6 +36,80 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     setVideoElement(videoRef.current);
   }, [enableFrameProcessing]);
 
+  // Event collection system
+  const eventCollector = useEventCollector({
+    maxEvents: 1000,
+    autoCleanup: true,
+    enableValidation: true,
+    autoStart: enableFrameProcessing
+  });
+
+  // Event logging (keeping for backward compatibility)
+  const logger = useFaceCountLogger({
+    autoSave: true,
+    maxEvents: 500
+  });
+
+  // Face counting with integrated event collection
+  const faceCounter = useFaceCounter({
+    onCountChange: (event: FaceCountEvent) => {
+      console.log('Face count event:', event);
+      
+      // Log to both systems
+      logger.logEvent(event);
+      
+      // Add to event collection system
+      if (eventCollector.isActive) {
+        // Convert FaceCountEvent to MonitoringEvent format
+        if (event.eventType === 'multiple_faces_detected') {
+          eventCollector.addEvent({
+            type: 'multiple_faces_detected',
+            confidence: event.confidence,
+            faceCount: event.currentCount,
+            previousCount: event.previousCount,
+            sustainedDuration: event.duration
+          });
+        } else if (event.eventType === 'single_face_restored') {
+          eventCollector.addEvent({
+            type: 'single_face_restored',
+            confidence: event.confidence,
+            previousCount: event.previousCount,
+            multipleFacesDuration: event.duration || 0
+          });
+        } else if (event.eventType === 'no_faces_detected') {
+          eventCollector.addEvent({
+            type: 'no_faces_detected',
+            confidence: event.confidence,
+            previousCount: event.previousCount,
+            noFacesDuration: event.duration
+          });
+        } else if (event.eventType === 'count_change') {
+          eventCollector.addEvent({
+            type: 'face_count_change',
+            confidence: event.confidence,
+            previousCount: event.previousCount,
+            currentCount: event.currentCount,
+            detectionData: {
+              faces: [], // Will be populated with actual face data
+              frameSize: { width: 640, height: 480 } // Default size
+            }
+          });
+        }
+      }
+    },
+    onError: (error) => {
+      console.error('Face counter error:', error);
+      onStreamError?.(error.message);
+    },
+    config: {
+      confidenceThreshold: 0.7,
+      smoothingWindow: 3,
+      stableCountThreshold: 5,
+      alertSensitivity: 0.8
+    },
+    autoStart: enableFrameProcessing
+  });
+
   const frameProcessor = useFrameProcessor(
     enableFrameProcessing ? videoElement : null,
     {
@@ -37,6 +117,11 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         // Update face detection results
         if (frameData.faceDetection) {
           setLatestFaceDetection(frameData.faceDetection);
+          
+          // Process face counting
+          if (faceCounter.isActive) {
+            faceCounter.processDetection(frameData.faceDetection);
+          }
         }
         
         // Call parent callback
@@ -224,6 +309,47 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             onResume={frameProcessor.resumeProcessing}
             onConfigUpdate={frameProcessor.updateConfig}
             error={frameProcessor.error}
+            compact={true}
+          />
+          
+          {/* Face Count Display */}
+          <FaceCountDisplay
+            status={faceCounter.status}
+            stats={faceCounter.stats}
+            history={faceCounter.getHistory()}
+            isVisible={isVisible}
+            compact={true}
+            showHistory={false}
+          />
+
+          {/* Event Monitor */}
+          <EventMonitor
+            recentEvents={eventCollector.recentEvents}
+            statistics={eventCollector.statistics}
+            eventCount={eventCollector.eventCount}
+            sessionId={eventCollector.sessionId}
+            onExportEvents={(options) => {
+              const result = eventCollector.exportEvents(options);
+              
+              // Trigger download
+              const blob = new Blob([
+                typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2)
+              ], { 
+                type: options.format === 'json' ? 'application/json' : 'text/csv' 
+              });
+              
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = result.filename;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              
+              console.log('Events exported:', result);
+            }}
+            isVisible={isVisible}
             compact={true}
           />
         </div>
