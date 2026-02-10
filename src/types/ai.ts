@@ -39,6 +39,7 @@ export interface AIModelLoaderConfig {
 
 export interface UseAIReturn {
   modelState: AIModelState;
+  isReady: boolean;
   loadModel: (type: AIModelType) => Promise<void>;
   loadAllModels: () => Promise<void>;
   getModel: <T>(type: AIModelType) => T | null;

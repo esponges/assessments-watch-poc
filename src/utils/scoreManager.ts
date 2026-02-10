@@ -8,10 +8,9 @@ import type {
   ScoringSummary,
   ScoreManagerState,
   ScoreCalculationResult,
-  ScoreManagerOptions,
-  DEFAULT_SCORING_CONFIG,
-  DEFAULT_SCORE_MANAGER_STATE
+  ScoreManagerOptions
 } from '../types/scoring';
+import { DEFAULT_SCORING_CONFIG, DEFAULT_SCORE_MANAGER_STATE } from '../types/scoring';
 
 export class ScoreManager {
   private state: ScoreManagerState;

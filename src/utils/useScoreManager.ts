@@ -289,7 +289,7 @@ export const useScoreManager = (
       scoreManagerRef.current = null;
       setIsActive(false);
     };
-  }, [initialize]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {

@@ -234,19 +234,28 @@ export const useAI = (): UseAIReturn => {
   useEffect(() => {
     isUnmountedRef.current = false;
     
-    // Auto-initialize TensorFlow.js
-    initializeAI().catch(error => {
-      console.error('Auto-initialization failed:', error);
-    });
+    // Auto-initialize TensorFlow.js and load required models
+    const initializeAndLoadModels = async () => {
+      try {
+        await initializeAI();
+        await loadAllModels();
+        console.log('AI system fully initialized with required models');
+      } catch (error) {
+        console.error('Auto-initialization failed:', error);
+      }
+    };
+    
+    initializeAndLoadModels();
 
     return () => {
       isUnmountedRef.current = true;
       cleanupTensorFlow();
     };
-  }, [initializeAI]);
+  }, [initializeAI, loadAllModels]);
 
   return {
     modelState,
+    isReady: modelState.isReady,
     loadModel,
     loadAllModels,
     getModel,

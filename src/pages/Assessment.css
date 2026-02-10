@@ -1,0 +1,127 @@
+.assessment {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
+}
+
+.assessment-interface {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.assessment-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  align-items: start;
+}
+
+.monitoring-overlay {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  width: 300px;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.monitoring-overlay.compact {
+  width: 240px;
+  opacity: 0.9;
+}
+
+.monitoring-overlay.hidden {
+  display: none;
+}
+
+.monitoring-overlay:hover {
+  opacity: 1;
+  transform: scale(1.02);
+}
+
+/* Assessment setup styles */
+.assessment h1 {
+  text-align: center;
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.assessment p {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .assessment {
+    padding: 0.5rem;
+  }
+  
+  .assessment h1 {
+    font-size: 2rem;
+  }
+  
+  .assessment-header {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .monitoring-overlay {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    margin-top: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .assessment h1 {
+    font-size: 1.8rem;
+  }
+  
+  .assessment p {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* Loading animation */
+.assessment-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.assessment-loading::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

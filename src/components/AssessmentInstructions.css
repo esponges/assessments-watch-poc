@@ -1,0 +1,262 @@
+.assessment-instructions {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.instructions-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.instructions-header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+}
+
+.instructions-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.instruction-section {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border-left: 4px solid #007bff;
+}
+
+.instruction-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.instruction-section ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style-type: none;
+}
+
+.instruction-section ul li {
+  margin-bottom: 0.75rem;
+  position: relative;
+  line-height: 1.5;
+  color: #555;
+}
+
+.instruction-section ul li::before {
+  content: '•';
+  color: #007bff;
+  font-weight: 600;
+  position: absolute;
+  left: -1.2rem;
+}
+
+.instruction-section ul li strong {
+  color: #333;
+}
+
+.monitoring-section {
+  border-left-color: #28a745;
+}
+
+.monitoring-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.monitoring-status.ready {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.monitoring-status.not-ready {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.status-indicator {
+  font-size: 1.2rem;
+}
+
+.privacy-note {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #e3f2fd;
+  border-radius: 6px;
+  border-left: 3px solid #2196f3;
+}
+
+.privacy-note p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #1565c0;
+}
+
+.technical-requirements {
+  border-left-color: #6f42c1;
+}
+
+.instructions-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.consent-section {
+  margin-bottom: 1.5rem;
+}
+
+.consent-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.consent-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.2s ease;
+}
+
+.consent-checkbox input[type="checkbox"]:checked + .checkmark {
+  background: #007bff;
+  border-color: #007bff;
+}
+
+.consent-checkbox input[type="checkbox"]:checked + .checkmark::after {
+  content: '✓';
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.consent-text {
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.cancel-btn,
+.start-btn {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 150px;
+}
+
+.cancel-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.start-btn.ready {
+  background: #28a745;
+  color: white;
+}
+
+.start-btn.ready:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.start-btn.disabled {
+  background: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .assessment-instructions {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  .instructions-header h1 {
+    font-size: 1.6rem;
+  }
+  
+  .instruction-section {
+    padding: 1rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .cancel-btn,
+  .start-btn {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .assessment-instructions {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+  
+  .instruction-section ul li {
+    font-size: 0.9rem;
+  }
+  
+  .consent-text {
+    font-size: 0.85rem;
+  }
+}
