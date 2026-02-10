@@ -1,6 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-webgl';
 import '@tensorflow/tfjs-backend-cpu';
+import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
+import '@mediapipe/face_mesh';
 import type { AIModelType, ModelConfig, ModelLoadingState } from '../types/ai';
 
 // Model configurations
@@ -88,8 +90,8 @@ export const loadAIModel = async (
           break;
         
         case 'facemesh':
-          // Future implementation
-          throw new Error('FaceMesh model not yet implemented');
+          model = await loadFaceMeshModel(options);
+          break;
         
         case 'posenet':
           // Future implementation  
@@ -118,6 +120,31 @@ export const loadAIModel = async (
   }
 
   throw lastError || new Error(`Failed to load ${config.name} after ${maxRetries} attempts`);
+};
+
+// Load FaceMesh model for detailed landmark detection
+const loadFaceMeshModel = async (options?: Record<string, unknown>): Promise<faceLandmarksDetection.FaceLandmarksDetector> => {
+  try {
+    console.log('Loading FaceMesh model with options:', options);
+    
+    const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+    const detectorConfig: faceLandmarksDetection.MediaPipeFaceMeshMediaPipeModelConfig = {
+      runtime: 'mediapipe',
+      solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
+      refineLandmarks: true,
+      maxFaces: 1,
+      ...options
+    };
+
+    const detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
+    
+    console.log('FaceMesh model loaded successfully');
+    return detector;
+    
+  } catch (error) {
+    console.error('Failed to load FaceMesh model:', error);
+    throw new Error(`FaceMesh loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };
 
 // Placeholder for BlazeFace model loading (will be implemented in next step)
@@ -149,6 +176,9 @@ export const validateModel = async (
     switch (modelType) {
       case 'blazeface':
         return typeof modelObj.predict === 'function';
+      
+      case 'facemesh':
+        return typeof modelObj.estimateFaces === 'function';
       
       default:
         return true; // Basic existence check for other models

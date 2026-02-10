@@ -8,12 +8,15 @@ import { useFaceCounter } from '../utils/useFaceCounter';
 import { useFaceCountLogger } from '../utils/useFaceCountLogger';
 import { useEventCollector } from '../utils/useEventCollector';
 import { useMultiplePersonDetector } from '../utils/useMultiplePersonDetector';
+import { useGazeEstimator } from '../utils/useGazeEstimator';
 import FrameProcessorStatus from './FrameProcessorStatus';
 import FaceDetectionOverlay from './FaceDetectionOverlay';
 import FaceCountDisplay from './FaceCountDisplay';
 import EventMonitor from './EventMonitor';
 import ScoreDisplay from './ScoreDisplay';
 import MultiplePersonIndicator from './MultiplePersonIndicator';
+import GazeIndicator from './GazeIndicator';
+import GazeCalibration from './GazeCalibration';
 import './VideoPreview.css';
 
 const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -31,6 +34,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     errorMessage: ''
   });
   const [latestFaceDetection, setLatestFaceDetection] = useState<FaceDetectionResult | null>(null);
+  const [showCalibration, setShowCalibration] = useState(false);
 
   // Frame processing
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
@@ -54,6 +58,40 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   });
 
   // Multiple person detection with scoring
+  // Gaze tracking system
+  const gazeEstimator = useGazeEstimator({
+    config: {
+      lookAwayThreshold: 25, // degrees
+      confidenceThreshold: 0.6,
+      smoothingWindow: 5,
+      calibrationPoints: 9,
+      eyeOpenThreshold: 0.3,
+      stabilityThreshold: 500
+    },
+    onGazeUpdate: (estimation) => {
+      console.log('Gaze updated:', estimation);
+      
+      // Add gaze events to event collector
+      if (eventCollector.isActive && estimation.isLookingAway) {
+        eventCollector.addEvent({
+          type: 'gaze_direction_changed',
+          confidence: estimation.confidence,
+          gazeDirection: {
+            x: estimation.gazePoint.x,
+            y: estimation.gazePoint.y
+          },
+          deviation: estimation.deviation,
+          isLookingAway: estimation.isLookingAway
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Gaze estimator error:', error);
+      onStreamError?.(error.message);
+    },
+    autoStart: enableFrameProcessing
+  });
+
   const multiplePersonDetector = useMultiplePersonDetector({
     onScoreChange: (scoreStatus) => {
       console.log('Score changed:', scoreStatus);
@@ -179,6 +217,11 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
           // Process face counting
           if (faceCounter.isActive) {
             faceCounter.processDetection(frameData.faceDetection);
+          }
+          
+          // Process gaze estimation
+          if (gazeEstimator.isModelLoaded && videoRef.current) {
+            gazeEstimator.estimateGaze(videoRef.current);
           }
         }
         
@@ -396,6 +439,17 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             showHistory={false}
           />
 
+          {/* Gaze Indicator */}
+          <GazeIndicator
+            gazeEstimation={gazeEstimator.gazeEstimation}
+            stats={gazeEstimator.stats}
+            isVisible={isVisible}
+            compact={true}
+            showZone={true}
+            showDeviation={true}
+            showConfidence={true}
+          />
+
           {/* Event Monitor */}
           <EventMonitor
             recentEvents={eventCollector.recentEvents}
@@ -428,6 +482,18 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
           />
         </div>
       )}
+      
+      {/* Gaze Calibration Modal */}
+      <GazeCalibration
+        isVisible={showCalibration}
+        onCalibrationComplete={(calibration) => {
+          gazeEstimator.setCalibration(calibration);
+          setShowCalibration(false);
+          console.log('Calibration completed:', calibration);
+        }}
+        onCancel={() => setShowCalibration(false)}
+        getCurrentGaze={() => gazeEstimator.gazeEstimation?.gazePoint || null}
+      />
     </div>
   );
 };
