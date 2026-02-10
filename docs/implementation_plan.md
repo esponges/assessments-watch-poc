@@ -470,11 +470,11 @@ Test with scenarios: two people briefly visible, someone walking behind, false f
 ```
 
 ### Deliverables
-- [ ] Multiple person detection triggers reliably with real multiple faces
-- [ ] Scoring system awards points correctly (+10 for multiple faces)
-- [ ] False positives are filtered out appropriately
-- [ ] Events include accurate timestamps and confidence scores
-- [ ] Visual indicators clearly show multiple person detection
+- [x] Multiple person detection triggers reliably with real multiple faces
+- [x] Scoring system awards points correctly (+10 for multiple faces)
+- [x] False positives are filtered out appropriately
+- [x] Events include accurate timestamps and confidence scores
+- [x] Visual indicators clearly show multiple person detection
 
 ---
 

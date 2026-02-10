@@ -7,10 +7,13 @@ import { useFrameProcessor } from '../utils/useFrameProcessor';
 import { useFaceCounter } from '../utils/useFaceCounter';
 import { useFaceCountLogger } from '../utils/useFaceCountLogger';
 import { useEventCollector } from '../utils/useEventCollector';
+import { useMultiplePersonDetector } from '../utils/useMultiplePersonDetector';
 import FrameProcessorStatus from './FrameProcessorStatus';
 import FaceDetectionOverlay from './FaceDetectionOverlay';
 import FaceCountDisplay from './FaceCountDisplay';
 import EventMonitor from './EventMonitor';
+import ScoreDisplay from './ScoreDisplay';
+import MultiplePersonIndicator from './MultiplePersonIndicator';
 import './VideoPreview.css';
 
 const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -50,6 +53,55 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     maxEvents: 500
   });
 
+  // Multiple person detection with scoring
+  const multiplePersonDetector = useMultiplePersonDetector({
+    onScoreChange: (scoreStatus) => {
+      console.log('Score changed:', scoreStatus);
+    },
+    onMultiplePersonEvent: (event) => {
+      console.log('Multiple person event:', event);
+      
+      // Add to event collection system
+      if (eventCollector.isActive) {
+        if (event.type === 'multiple_person_start') {
+          eventCollector.addEvent({
+            type: 'multiple_faces_detected',
+            confidence: event.confidence,
+            faceCount: event.faceCount,
+            previousCount: 1, // Assuming single person before
+            sustainedDuration: event.sustained ? event.duration : undefined
+          });
+        } else if (event.type === 'multiple_person_end') {
+          eventCollector.addEvent({
+            type: 'single_face_restored',
+            confidence: event.confidence,
+            previousCount: event.faceCount,
+            multipleFacesDuration: event.duration
+          });
+        }
+      }
+    },
+    onError: (error) => {
+      console.error('Multiple person detector error:', error);
+      onStreamError?.(error.message);
+    },
+    config: {
+      scoreConfig: {
+        multipleFacesPoints: 10,
+        sustainedMultipleFacesThreshold: 3,
+        sustainedMultipleFacesBonus: 5,
+        confidenceThreshold: 0.7,
+        temporalValidationWindow: 200
+      },
+      sustainedThresholdMs: 3000,
+      glitchFilterMs: 200,
+      flaggingThreshold: 8,
+      confidenceThreshold: 0.7,
+      maxScoreHistory: 50
+    },
+    autoStart: enableFrameProcessing
+  });
+
   // Face counting with integrated event collection
   const faceCounter = useFaceCounter({
     onCountChange: (event: FaceCountEvent) => {
@@ -57,6 +109,12 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       
       // Log to both systems
       logger.logEvent(event);
+      
+      // Process with multiple person detector
+      const currentStatus = faceCounter.getCurrentStatus();
+      if (multiplePersonDetector.isActive && currentStatus) {
+        multiplePersonDetector.processDetection(currentStatus, event);
+      }
       
       // Add to event collection system
       if (eventCollector.isActive) {
@@ -81,7 +139,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             type: 'no_faces_detected',
             confidence: event.confidence,
             previousCount: event.previousCount,
-            noFacesDuration: event.duration
+            noFacesDuration: event.duration || 0
           });
         } else if (event.eventType === 'count_change') {
           eventCollector.addEvent({
@@ -317,6 +375,22 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             status={faceCounter.status}
             stats={faceCounter.stats}
             history={faceCounter.getHistory()}
+            isVisible={isVisible}
+            compact={true}
+            showHistory={false}
+          />
+
+          {/* Multiple Person Detection Indicator */}
+          <MultiplePersonIndicator
+            detectionStatus={multiplePersonDetector.detectionStatus}
+            isVisible={isVisible}
+            compact={true}
+            showConfidence={true}
+          />
+
+          {/* Score Display */}
+          <ScoreDisplay
+            scoreStatus={multiplePersonDetector.scoreStatus}
             isVisible={isVisible}
             compact={true}
             showHistory={false}

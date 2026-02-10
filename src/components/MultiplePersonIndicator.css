@@ -1,0 +1,235 @@
+.multiple-person-indicator {
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  margin: 8px 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.multiple-person-indicator.compact {
+  font-size: 12px;
+}
+
+.multiple-person-indicator.active {
+  border-color: #dc3545;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+  box-shadow: 0 4px 16px rgba(220, 53, 69, 0.2);
+}
+
+.multiple-person-indicator.sustained {
+  border-color: #dc3545;
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  animation: sustainedPulse 2s infinite;
+}
+
+.multiple-person-indicator.blinking {
+  animation: alertBlink 0.5s ease-in-out 3;
+}
+
+@keyframes sustainedPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 4px 16px rgba(220, 53, 69, 0.2);
+  }
+  50% { 
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+  }
+}
+
+@keyframes alertBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Indicator Main Content */
+.indicator-main {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.multiple-person-indicator.compact .indicator-main {
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.indicator-icon {
+  font-size: 24px;
+  min-width: 32px;
+  text-align: center;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.multiple-person-indicator.compact .indicator-icon {
+  font-size: 18px;
+  min-width: 24px;
+}
+
+.multiple-person-indicator.active .indicator-icon {
+  animation: iconBounce 1s ease-in-out infinite alternate;
+}
+
+@keyframes iconBounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-2px); }
+}
+
+.indicator-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.indicator-status {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.multiple-person-indicator.active .indicator-status {
+  color: #dc3545;
+}
+
+.indicator-details {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.multiple-person-indicator.compact .indicator-details {
+  font-size: 11px;
+  gap: 8px;
+}
+
+.duration {
+  background: #fff3cd;
+  color: #856404;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+}
+
+.multiple-person-indicator.sustained .duration {
+  background: #d4edda;
+  color: #155724;
+}
+
+.confidence {
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+}
+
+.alert-badge {
+  background: #dc3545;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px rgba(220, 53, 69, 0);
+  }
+}
+
+/* Sustain Progress */
+.sustain-progress {
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+.progress-label {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 3px;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.4), 
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.progress-text {
+  font-size: 10px;
+  color: #666;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .multiple-person-indicator {
+    margin: 4px 0;
+  }
+  
+  .indicator-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .indicator-icon {
+    align-self: center;
+  }
+  
+  .indicator-details {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .alert-badge {
+    align-self: center;
+  }
+}
