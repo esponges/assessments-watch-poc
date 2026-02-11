@@ -379,26 +379,7 @@ export const useAssessmentLogger = (
       setIsLogging(false);
       setIsSessionActive(false);
     };
-  }, [autoStart, options.assessmentId, options.studentId, initialize, startSession, isSessionActive]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (loggerRef.current && isSessionActive) {
-        try {
-          loggerRef.current.endSession();
-        } catch (error) {
-          console.error('Session end cleanup failed:', error);
-        }
-      }
-      if (loggerRef.current) {
-        loggerRef.current.destroy();
-      }
-      loggerRef.current = null;
-      setIsLogging(false);
-      setIsSessionActive(false);
-    };
-  }, [isSessionActive]);
+  }, [autoStart, options.assessmentId, options.studentId]);
 
   return {
     startSession,
