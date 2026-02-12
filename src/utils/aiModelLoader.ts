@@ -1,6 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-webgl';
 import '@tensorflow/tfjs-backend-cpu';
+import * as blazeface from '@tensorflow-models/blazeface';
 import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 import '@mediapipe/face_mesh';
 import type { AIModelType, ModelConfig, ModelLoadingState } from '../types/ai';
@@ -147,17 +148,27 @@ const loadFaceMeshModel = async (options?: Record<string, unknown>): Promise<fac
   }
 };
 
-// Placeholder for BlazeFace model loading (will be implemented in next step)
-const loadBlazeFaceModel = async (options?: Record<string, unknown>): Promise<unknown> => {
-  // This will be implemented when we add BlazeFace dependency
-  console.log('BlazeFace loading with options:', options);
-  
-  // For now, return a mock model to test the infrastructure
-  return {
-    name: 'BlazeFace Mock',
-    predict: () => Promise.resolve([]),
-    dispose: () => {}
-  };
+// Load BlazeFace model for face detection
+const loadBlazeFaceModel = async (options?: Record<string, unknown>): Promise<blazeface.BlazeFaceModel> => {
+  try {
+    console.log('Loading BlazeFace model with options:', options);
+    
+    const model = await blazeface.load({
+      maxFaces: 1,
+      inputWidth: 320,
+      inputHeight: 240,
+      iouThreshold: 0.3,
+      scoreThreshold: 0.75,
+      ...options
+    });
+    
+    console.log('BlazeFace model loaded successfully');
+    return model;
+    
+  } catch (error) {
+    console.error('Failed to load BlazeFace model:', error);
+    throw new Error(`BlazeFace loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };
 
 // Validate that a loaded model is working correctly
@@ -175,7 +186,7 @@ export const validateModel = async (
     
     switch (modelType) {
       case 'blazeface':
-        return typeof modelObj.predict === 'function';
+        return typeof modelObj.estimateFaces === 'function';
       
       case 'facemesh':
         return typeof modelObj.estimateFaces === 'function';

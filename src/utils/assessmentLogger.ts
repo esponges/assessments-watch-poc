@@ -10,9 +10,8 @@ import type {
   AssessmentLoggerOptions,
   AssessmentLogExport,
   LogValidationResult,
-  LoggingUpdate,
-  DEFAULT_ASSESSMENT_LOGGER_CONFIG
 } from '../types/assessmentLogging';
+import { DEFAULT_ASSESSMENT_LOGGER_CONFIG } from '../types/assessmentLogging';
 
 export class AssessmentLogger {
   private config: AssessmentLoggerConfig;
