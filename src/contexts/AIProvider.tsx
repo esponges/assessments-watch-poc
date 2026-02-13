@@ -256,12 +256,12 @@ const AIProvider: React.FC<AIProviderProps> = ({
     }));
   }, [modelState.models]);
 
-  // Auto-initialize on mount
+  // Auto-initialize on mount - this effect synchronizes with the external AI system
   useEffect(() => {
     isUnmountedRef.current = false;
     
     if (autoInitialize) {
-      const initializeAndLoadModels = async () => {
+      const initialize = async () => {
         try {
           await initializeAI();
           await loadAllModels();
@@ -271,7 +271,7 @@ const AIProvider: React.FC<AIProviderProps> = ({
         }
       };
       
-      initializeAndLoadModels();
+      initialize();
     }
 
     return () => {

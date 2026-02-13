@@ -15,14 +15,14 @@ import { useDashboardData } from '../utils/useDashboardData';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
-  const [mode, setMode] = useState<DashboardMode>({
+  const [mode, setMode] = useState<DashboardMode>(() => ({
     view: 'realtime',
     timeRange: {
       start: Date.now() - 24 * 60 * 60 * 1000, // Last 24 hours
       end: Date.now()
     },
     filters: {}
-  });
+  }));
   
   const [selectedSession, setSelectedSession] = useState<SessionDetail | null>(null);
   const [alerts, setAlerts] = useState<DashboardAlert[]>([]);
@@ -49,6 +49,31 @@ const Dashboard: React.FC = () => {
     setSelectedSession(null); // Clear selection when changing modes
   }, []);
   
+  // Alert management
+  const dismissAlert = useCallback((alertId: string) => {
+    setAlerts(prev => prev.filter(alert => alert.id !== alertId));
+  }, []);
+  
+  const addAlert = useCallback((alert: Omit<DashboardAlert, 'id' | 'timestamp'>) => {
+    const newAlert: DashboardAlert = {
+      ...alert,
+      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: Date.now()
+    };
+    setAlerts(prev => [...prev, newAlert]);
+    
+    // Auto-dismiss after 5 seconds if dismissible
+    if (alert.dismissible) {
+      const timeoutId = setTimeout(() => {
+        dismissAlert(newAlert.id);
+      }, 5000);
+      
+      // Note: In a full implementation, we should store timeouts for cleanup
+      // but since this is in a callback, not an effect, it's less critical
+      return timeoutId;
+    }
+  }, [dismissAlert]);
+
   // Handle session selection
   const handleSessionSelect = useCallback(async (session: SessionSummary) => {
     try {
@@ -63,7 +88,7 @@ const Dashboard: React.FC = () => {
         dismissible: true
       });
     }
-  }, [getSessionDetail]);
+  }, [getSessionDetail, addAlert]);
   
   // Handle session actions
   const handleSessionExport = useCallback(async (sessionId: string) => {
@@ -84,7 +109,7 @@ const Dashboard: React.FC = () => {
         dismissible: true
       });
     }
-  }, [exportSession]);
+  }, [exportSession, addAlert]);
   
   const handleSessionDelete = useCallback(async (sessionId: string) => {
     if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
@@ -111,7 +136,7 @@ const Dashboard: React.FC = () => {
         dismissible: true
       });
     }
-  }, [deleteSession, selectedSession]);
+  }, [deleteSession, selectedSession, addAlert]);
   
   const handleSessionFlag = useCallback(async (flag: any) => {
     if (!selectedSession) return;
@@ -136,7 +161,7 @@ const Dashboard: React.FC = () => {
         dismissible: true
       });
     }
-  }, [selectedSession, flagSession, getSessionDetail]);
+  }, [selectedSession, flagSession, getSessionDetail, addAlert]);
   
   const handleSessionUnflag = useCallback(async () => {
     if (!selectedSession) return;
@@ -161,28 +186,7 @@ const Dashboard: React.FC = () => {
         dismissible: true
       });
     }
-  }, [selectedSession, unflagSession, getSessionDetail]);
-  
-  // Alert management
-  const addAlert = useCallback((alert: Omit<DashboardAlert, 'id' | 'timestamp'>) => {
-    const newAlert: DashboardAlert = {
-      ...alert,
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now()
-    };
-    setAlerts(prev => [...prev, newAlert]);
-    
-    // Auto-dismiss after 5 seconds if dismissible
-    if (alert.dismissible) {
-      setTimeout(() => {
-        dismissAlert(newAlert.id);
-      }, 5000);
-    }
-  }, []);
-  
-  const dismissAlert = useCallback((alertId: string) => {
-    setAlerts(prev => prev.filter(alert => alert.id !== alertId));
-  }, []);
+  }, [selectedSession, unflagSession, getSessionDetail, addAlert]);
   
   // Handle export all
   const handleExportAll = useCallback(async () => {
@@ -203,7 +207,7 @@ const Dashboard: React.FC = () => {
         dismissible: true
       });
     }
-  }, [exportAllSessions, mode.filters]);
+  }, [exportAllSessions, mode.filters, addAlert]);
   
   // Handle clear data
   const handleClearData = useCallback(async () => {
@@ -232,7 +236,7 @@ const Dashboard: React.FC = () => {
         dismissible: true
       });
     }
-  }, [refreshData]);
+  }, [refreshData, addAlert]);
   
   // Auto-refresh for real-time mode
   useEffect(() => {

@@ -17,22 +17,32 @@ const MultiplePersonIndicator: React.FC<MultiplePersonIndicatorProps> = ({
   compact = false,
   showConfidence = true
 }) => {
-  const [isBlinking, setIsBlinking] = useState(false);
   const [lastEventId, setLastEventId] = useState<string | null>(null);
+  const [isBlinking, setIsBlinking] = useState(false);
 
-  // Trigger blinking animation on new events
+  // Get current event ID directly from props
+  const currentEventId = detectionStatus?.lastEvent?.id || null;
+
+  // Update lastEventId during render if it changed (this is allowed)
+  if (currentEventId && currentEventId !== lastEventId) {
+    setLastEventId(currentEventId);
+  }
+
+  // Effect to manage blinking timer - subscribes to external timer system
   useEffect(() => {
-    if (detectionStatus?.lastEvent && detectionStatus.lastEvent.id !== lastEventId) {
-      setLastEventId(detectionStatus.lastEvent.id);
-      setIsBlinking(true);
-      
+    if (isBlinking) {
       const timer = setTimeout(() => {
         setIsBlinking(false);
       }, 1500);
 
       return () => clearTimeout(timer);
     }
-  }, [detectionStatus?.lastEvent?.id]);
+  }, [isBlinking]);
+
+  // Trigger blink when new event is detected - during render phase
+  if (currentEventId && currentEventId !== lastEventId && !isBlinking) {
+    setIsBlinking(true);
+  }
 
   if (!isVisible || !detectionStatus) {
     return null;

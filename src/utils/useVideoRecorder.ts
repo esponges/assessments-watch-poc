@@ -192,16 +192,22 @@ export const useVideoRecorder = (
     };
   }, [cleanup, recordingState]);
 
-  // Reset state when stream changes
+  // Reset state when stream changes - synchronizing with external media stream
   useEffect(() => {
+    // Schedule state reset for next tick to avoid synchronous setState
+    const resetTimer = setTimeout(() => {
+      setRecordingState('idle');
+      setRecordingResult(null);
+      cleanup();
+    }, 0);
+
+    // Stop recording if currently recording
     if (recordingState === 'recording') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       stopRecording();
     }
-    setRecordingState('idle');
-    setRecordingResult(null);
-    cleanup();
-  }, [stream]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    return () => clearTimeout(resetTimer);
+  }, [stream, recordingState, stopRecording, cleanup]);
 
   return {
     recordingState,

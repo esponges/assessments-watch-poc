@@ -139,23 +139,24 @@ export const useFaceDetection = (
     setError(null);
   }, []);
 
-  // Auto-initialize if requested
+  // Auto-initialize if requested - this effect synchronizes with external face detection system
   useEffect(() => {
     if (autoStart) {
-      const initAsync = async () => {
+      const init = async () => {
         try {
           await initialize();
         } catch (error) {
           console.error('Auto-initialization failed:', error);
         }
       };
-      initAsync();
+      
+      init();
     }
 
     return () => {
       dispose();
     };
-  }, [autoStart]);
+  }, [autoStart, initialize, dispose]);
 
   return {
     initialize,

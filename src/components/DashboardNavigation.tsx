@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import type { DashboardNavigationProps } from '../types/dashboard';
 import './DashboardNavigation.css';
 
@@ -42,28 +42,31 @@ const DashboardNavigation: React.FC<DashboardNavigationProps> = ({
     }
   };
 
-  const getTimeRangePresets = () => [
-    {
-      label: 'Last Hour',
-      value: { start: Date.now() - 60 * 60 * 1000, end: Date.now() }
-    },
-    {
-      label: 'Last 6 Hours',
-      value: { start: Date.now() - 6 * 60 * 60 * 1000, end: Date.now() }
-    },
-    {
-      label: 'Last 24 Hours',
-      value: { start: Date.now() - 24 * 60 * 60 * 1000, end: Date.now() }
-    },
-    {
-      label: 'Last 7 Days',
-      value: { start: Date.now() - 7 * 24 * 60 * 60 * 1000, end: Date.now() }
-    },
-    {
-      label: 'Last 30 Days',
-      value: { start: Date.now() - 30 * 24 * 60 * 60 * 1000, end: Date.now() }
-    }
-  ];
+  const getTimeRangePresets = useCallback(() => {
+    const now = Date.now();
+    return [
+      {
+        label: 'Last Hour',
+        value: { start: now - 60 * 60 * 1000, end: now }
+      },
+      {
+        label: 'Last 6 Hours',
+        value: { start: now - 6 * 60 * 60 * 1000, end: now }
+      },
+      {
+        label: 'Last 24 Hours',
+        value: { start: now - 24 * 60 * 60 * 1000, end: now }
+      },
+      {
+        label: 'Last 7 Days',
+        value: { start: now - 7 * 24 * 60 * 60 * 1000, end: now }
+      },
+      {
+        label: 'Last 30 Days',
+        value: { start: now - 30 * 24 * 60 * 60 * 1000, end: now }
+      }
+    ];
+  }, []);
 
   return (
     <div className="dashboard-navigation">

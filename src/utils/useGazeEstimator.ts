@@ -63,7 +63,8 @@ export const useGazeEstimator = (
 
       // Create gaze estimator
       gazeEstimatorRef.current = new GazeEstimator(options.config);
-      setStats(gazeEstimatorRef.current.getStats());
+      const initialStats = gazeEstimatorRef.current.getStats();
+      setStats(initialStats);
 
       // Load FaceMesh model
       console.log('Loading FaceMesh model for gaze estimation...');
@@ -196,7 +197,7 @@ export const useGazeEstimator = (
       faceMeshModelRef.current = null;
       gazeEstimatorRef.current = null;
     };
-  }, [autoStart]);
+  }, [autoStart, initialize]);
 
   // Cleanup on unmount
   useEffect(() => {

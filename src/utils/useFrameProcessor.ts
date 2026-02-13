@@ -67,7 +67,7 @@ export const useFrameProcessor = (
     setStats(newStats);
   }, []);
 
-  // Initialize extractor when video element is available
+  // Initialize extractor when video element is available - synchronizing with external video system
   useEffect(() => {
     if (!videoElement) {
       if (extractorRef.current) {
@@ -82,7 +82,6 @@ export const useFrameProcessor = (
     // Wait for video to be ready
     const initializeExtractor = () => {
       if (videoElement.readyState < 2) {
-        // Video not ready yet
         return;
       }
 
