@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { FaceDetector, createFaceDetector } from './faceDetector';
+import { useModel } from '../hooks/useModel';
 import type { 
   FaceDetectionResult, 
   FaceDetectionConfig, 
@@ -36,6 +37,9 @@ export const useFaceDetection = (
   
   const detectorRef = useRef<FaceDetector | null>(null);
   const { onDetection, onError, config: initialConfig, autoStart = false } = options;
+  
+  // Get face detection model using React Query
+  const { data: faceModel, isLoading: isModelLoading, isSuccess: isModelReady } = useModel('face-detection');
 
   // Handle detection results
   const handleDetection = useCallback(async (result: FaceDetectionResult) => {
@@ -72,6 +76,11 @@ export const useFaceDetection = (
     try {
       setError(null);
       
+      console.log('[useFaceDetection] Initializing face detector...', {
+        aiReady: isModelReady,
+        faceModelReady: isModelReady
+      });
+      
       if (detectorRef.current) {
         detectorRef.current.dispose();
       }
@@ -84,20 +93,33 @@ export const useFaceDetection = (
       };
 
       detectorRef.current = createFaceDetector(detectorOptions);
-      await detectorRef.current.initialize();
+      
+      // Get the face detection model from AI context
+      if (isModelReady && faceModel) {
+        const model = faceModel;
+        console.log('[useFaceDetection] Got face detection model from React Query:', {
+          hasModel: !!model,
+          modelType: typeof model
+        });
+        await detectorRef.current.initialize(model);
+      } else {
+        console.log('[useFaceDetection] AI not ready, initializing without model');
+        await detectorRef.current.initialize();
+      }
       
       setIsInitialized(true);
       setConfig(detectorRef.current.getConfig());
       setStats(detectorRef.current.getStats());
       
-      console.log('Face detection initialized successfully');
+      console.log('[useFaceDetection] Face detection initialized successfully');
       
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
+      console.error('[useFaceDetection] Initialization failed:', error);
       handleError(error);
       throw error;
     }
-  }, [handleDetection, handleError, handleStatsUpdate, initialConfig]);
+  }, [handleDetection, handleError, handleStatsUpdate, initialConfig, isModelReady, faceModel]);
 
   // Detect faces in image data
   const detectFaces = useCallback(async (

@@ -63,7 +63,7 @@ export const loadAIModel = async (
   modelType: AIModelType,
   options?: Record<string, unknown>,
   maxRetries: number = 3
-): Promise<Pipeline> => {
+): Promise<any> => {
   const config = MODEL_CONFIGS[modelType];
   
   if (!config || !config.url) {
@@ -80,9 +80,8 @@ export const loadAIModel = async (
       const task = getTaskFromModelType(modelType);
       
       // Load model using Transformers.js pipeline
-      const model = await pipeline(task, config.url, {
+      const model = await pipeline(task as any, config.url, {
         ...options,
-        device: 'wasm',
         dtype: 'fp32'
       });
 
@@ -132,7 +131,7 @@ export const processDetectionResults = (results: any[], threshold: number = 0.5)
 
 // Validate that a loaded Transformers.js model is working correctly
 export const validateModel = async (
-  model: Pipeline,
+  model: any,
   modelType: AIModelType
 ): Promise<boolean> => {
   try {

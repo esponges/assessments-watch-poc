@@ -44,14 +44,18 @@ export class FaceDetector {
   async initialize(providedModel?: Pipeline): Promise<void> {
     try {
       if (this.isInitialized) {
+        console.log('[FaceDetector] Already initialized, skipping...');
         return;
       }
 
       if (providedModel) {
-        console.log('Using provided Transformers.js model...');
+        console.log('[FaceDetector] Using provided Transformers.js model...', {
+          modelType: typeof providedModel,
+          modelFunction: typeof providedModel === 'function'
+        });
         this.model = providedModel;
         this.isInitialized = true;
-        console.log('Face detector initialized with provided model');
+        console.log('[FaceDetector] Face detector initialized with provided model successfully');
         this.updateStats();
         return;
       }
@@ -74,13 +78,21 @@ export class FaceDetector {
     imageData: ImageData | HTMLCanvasElement | HTMLImageElement,
     timestamp: number = Date.now()
   ): Promise<FaceDetectionResult> {
+    console.log('[FaceDetector] detectFaces called with:', {
+      inputType: imageData.constructor.name,
+      timestamp,
+      isInitialized: this.isInitialized,
+      hasModel: !!this.model
+    });
+
     if (!this.isInitialized) {
+      console.error('[FaceDetector] Not initialized - throwing error');
       throw new Error('Face detector not initialized. Call initialize() first.');
     }
 
     // TEMPORARY: Return mock results when no model is available
     if (!this.model) {
-      console.log('Face detector running without model - returning mock results');
+      console.warn('[FaceDetector] No model available - returning mock results');
       return {
         faces: [],
         timestamp,
@@ -101,10 +113,13 @@ export class FaceDetector {
       let frameWidth: number;
       let frameHeight: number;
 
+      console.log('[FaceDetector] Processing input data...');
+
       // Convert input to compatible format for Transformers.js
       if (imageData instanceof ImageData) {
         frameWidth = imageData.width;
         frameHeight = imageData.height;
+        console.log('[FaceDetector] Converting ImageData to canvas:', { frameWidth, frameHeight });
         // Create canvas from ImageData
         const canvas = document.createElement('canvas');
         canvas.width = frameWidth;
@@ -115,19 +130,29 @@ export class FaceDetector {
       } else if (imageData instanceof HTMLCanvasElement) {
         frameWidth = imageData.width;
         frameHeight = imageData.height;
+        console.log('[FaceDetector] Using HTMLCanvasElement:', { frameWidth, frameHeight });
         inputElement = imageData;
       } else if (imageData instanceof HTMLImageElement) {
         frameWidth = imageData.naturalWidth || imageData.width;
         frameHeight = imageData.naturalHeight || imageData.height;
+        console.log('[FaceDetector] Using HTMLImageElement:', { frameWidth, frameHeight });
         inputElement = imageData;
       } else {
+        console.error('[FaceDetector] Unsupported input type:', imageData.constructor.name);
         throw new Error('Unsupported input type for face detection');
       }
 
       // Run object detection to find faces
+      console.log('[FaceDetector] Running model inference with threshold:', this.config.scoreThreshold);
       const detections = await this.model(inputElement, {
         threshold: this.config.scoreThreshold,
         percentage: true
+      });
+
+      console.log('[FaceDetector] Model returned detections:', { 
+        isArray: Array.isArray(detections), 
+        length: Array.isArray(detections) ? detections.length : 0,
+        detections: Array.isArray(detections) ? detections.slice(0, 3) : detections // Log first 3 for debugging
       });
 
       // Filter for face-related detections and convert to our format
@@ -135,14 +160,34 @@ export class FaceDetector {
       const faces: DetectedFace[] = (Array.isArray(detections) ? detections : [])
         .filter((detection: any) => {
           const label = detection.label?.toLowerCase() || '';
-          return faceLabels.some(faceLabel => label.includes(faceLabel)) && 
-                 detection.score >= this.config.scoreThreshold;
+          const isRelevant = faceLabels.some(faceLabel => label.includes(faceLabel));
+          const meetsThreshold = detection.score >= this.config.scoreThreshold;
+          
+          console.log('[FaceDetector] Filtering detection:', {
+            label,
+            score: detection.score,
+            threshold: this.config.scoreThreshold,
+            isRelevant,
+            meetsThreshold,
+            passed: isRelevant && meetsThreshold
+          });
+          
+          return isRelevant && meetsThreshold;
         })
         .slice(0, this.config.maxFaces)
         .map((detection: any, index: number) => {
           const box = detection.box;
           const topLeft: [number, number] = [box.xmin * frameWidth / 100, box.ymin * frameHeight / 100];
           const bottomRight: [number, number] = [box.xmax * frameWidth / 100, box.ymax * frameHeight / 100];
+          
+          console.log('[FaceDetector] Converting detection to face:', {
+            index,
+            label: detection.label,
+            score: detection.score,
+            box,
+            topLeft,
+            bottomRight
+          });
           
           const face: DetectedFace = {
             id: `face_${timestamp}_${index}`,
@@ -160,6 +205,12 @@ export class FaceDetector {
         });
 
       const processingTime = performance.now() - startTime;
+      
+      console.log('[FaceDetector] Final result:', {
+        facesFound: faces.length,
+        processingTime: `${processingTime.toFixed(2)}ms`,
+        frameSize: `${frameWidth}x${frameHeight}`
+      });
       
       const result: FaceDetectionResult = {
         faces,

@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { FrameExtractor, createFrameExtractor } from './frameExtractor';
+import { useModel } from '../hooks/useModel';
 import type { 
   FrameData, 
   FrameExtractionConfig, 
@@ -35,6 +36,9 @@ export const useFrameProcessor = (
   
   const extractorRef = useRef<FrameExtractor | null>(null);
   const { onFrame, onError, config, autoStart = false } = options;
+  
+  // Get face detection model using React Query
+  const { data: faceModel, isLoading: isModelLoading, isSuccess: isModelReady } = useModel('face-detection');
 
   // Handle frame processing
   const handleFrame = useCallback(async (frameData: FrameData) => {
@@ -86,19 +90,38 @@ export const useFrameProcessor = (
       }
 
       try {
+        console.log('[useFrameProcessor] Initializing with AI context:', {
+          aiReady: isModelReady,
+          faceModelReady: isModelReady
+        });
+        
+        // Get the face detection model from React Query
+        const model = isModelReady ? faceModel : undefined;
+        
+        console.log('[useFrameProcessor] Face model for frame extractor:', !!model);
+        
         const extractorOptions: FrameExtractionOptions = {
           videoElement,
           onFrame: handleFrame,
           onError: handleError,
           onStatsUpdate: handleStatsUpdate,
-          config
+          config,
+          faceDetectionModel: model // Pass the AI model to frame extractor
         };
 
         extractorRef.current = createFrameExtractor(extractorOptions);
         
+        console.log('[useFrameProcessor] AutoStart configuration:', { 
+          autoStart, 
+          videoReady: videoElement.readyState >= 2,
+          videoPlaying: !videoElement.paused 
+        });
+        
         if (autoStart) {
+          console.log('[useFrameProcessor] Starting frame processing...');
           extractorRef.current.start();
           setIsProcessing(true);
+          console.log('[useFrameProcessor] Frame processing started successfully');
         }
 
         console.log('Frame extractor initialized for video element');
@@ -122,7 +145,7 @@ export const useFrameProcessor = (
       }
       setIsProcessing(false);
     };
-  }, [videoElement, handleFrame, handleError, handleStatsUpdate, config, autoStart]);
+  }, [videoElement, handleFrame, handleError, handleStatsUpdate, config, autoStart, isModelReady, faceModel]);
 
   // Start processing
   const startProcessing = useCallback(() => {

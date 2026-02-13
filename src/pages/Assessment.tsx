@@ -8,7 +8,7 @@ import AssessmentTimer from '../components/AssessmentTimer';
 import AssessmentResults from '../components/AssessmentResults';
 import { useVideoRecorder } from '../utils/useVideoRecorder';
 import { useFileManager } from '../utils/useFileManager';
-import { useAI } from '../utils/useAI';
+import { useModels } from '../hooks/useModel';
 import { useAssessmentLogic } from '../utils/useAssessmentLogic';
 import { useAssessmentLogger } from '../utils/useAssessmentLogger';
 import { DEFAULT_ASSESSMENT_CONFIG } from '../data/questionBank';
@@ -36,7 +36,7 @@ const Assessment: React.FC = () => {
   const fileManager = useFileManager();
 
   // Initialize AI system
-  const ai = useAI();
+  const { isLoading: modelsLoading, isSuccess: modelsReady } = useModels();
 
   // Assessment logic
   const assessmentLogic = useAssessmentLogic({
@@ -203,7 +203,7 @@ const Assessment: React.FC = () => {
   // Check if monitoring is ready
   useEffect(() => {
     const checkMonitoring = () => {
-      const ready = cameraStream !== null && ai.isReady && assessmentLogger.isLogging;
+      const ready = cameraStream !== null && modelsReady && assessmentLogger.isLogging;
       setIsMonitoringReady(ready);
     };
     
@@ -211,7 +211,7 @@ const Assessment: React.FC = () => {
     const interval = setInterval(checkMonitoring, 1000);
     
     return () => clearInterval(interval);
-  }, [cameraStream, ai.isReady, assessmentLogger.isLogging]);
+  }, [cameraStream, modelsReady, assessmentLogger.isLogging]);
 
   const renderCurrentPhase = () => {
     switch (currentPhase) {

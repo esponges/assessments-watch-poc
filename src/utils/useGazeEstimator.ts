@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { GazeEstimator } from './gazeEstimator';
-import { loadAIModel } from './aiModelLoader';
-// Note: Gaze estimation now uses Transformers.js models through AI context
+import { useModel } from '../hooks/useModel';
+// Note: Gaze estimation now uses Transformers.js models through React Query
 import type {
   GazeConfig,
   GazeStats,
@@ -43,8 +43,10 @@ export const useGazeEstimator = (
   const [modelLoadingProgress, setModelLoadingProgress] = useState(0);
 
   const gazeEstimatorRef = useRef<GazeEstimator | null>(null);
-  const faceMeshModelRef = useRef<faceLandmarksDetection.FaceLandmarksDetector | null>(null);
   const { autoStart = true, onGazeUpdate, onCalibrationNeeded, onError } = options;
+
+  // Get face detection model using React Query
+  const { data: faceModel, isLoading: isModelLoading, isSuccess: isModelReady, error: modelError } = useModel('face-detection');
 
   // Handle errors
   const handleError = useCallback((err: Error, context?: string) => {
@@ -55,51 +57,41 @@ export const useGazeEstimator = (
     }
   }, [onError]);
 
-  // Initialize gaze estimator and load model
+  // Initialize gaze estimator when model is ready
   const initialize = useCallback(async () => {
+    if (!isModelReady || !faceModel) {
+      return;
+    }
+
     try {
       setError(null);
-      setModelLoadingProgress(0);
-
+      
       // Create gaze estimator
       gazeEstimatorRef.current = new GazeEstimator(options.config);
       const initialStats = gazeEstimatorRef.current.getStats();
       setStats(initialStats);
-
-      // Load FaceMesh model
-      console.log('Loading FaceMesh model for gaze estimation...');
-      setModelLoadingProgress(20);
-
-      const model = await loadAIModel('face-detection', {
-        threshold: 0.75
-      });
-
-      setModelLoadingProgress(80);
-
-      faceMeshModelRef.current = model;
-      setModelLoadingProgress(100);
+      
       setIsModelLoaded(true);
-
-      console.log('Gaze estimator initialized successfully');
+      console.log('Gaze estimator initialized successfully with React Query model');
 
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       handleError(error, 'initialize');
       throw error;
     }
-  }, [options.config, handleError]);
+  }, [isModelReady, faceModel, options.config, handleError]);
 
   // Estimate gaze from video element
   const estimateGaze = useCallback(async (
     videoElement: HTMLVideoElement
   ): Promise<EnhancedGazeEstimation | null> => {
-    if (!gazeEstimatorRef.current || !faceMeshModelRef.current || !isModelLoaded) {
+    if (!gazeEstimatorRef.current || !faceModel || !isModelLoaded) {
       return null;
     }
 
     try {
-      // Get faces from video
-      const faces = await faceMeshModelRef.current.estimateFaces(videoElement);
+      // Get faces from video using Transformers.js model
+      const faces = await faceModel(videoElement);
       
       if (!faces || faces.length === 0) {
         return null;
@@ -129,7 +121,7 @@ export const useGazeEstimator = (
       handleError(error, 'estimateGaze');
       return null;
     }
-  }, [isModelLoaded, onGazeUpdate, handleError]);
+  }, [faceModel, isModelLoaded, onGazeUpdate, handleError]);
 
   // Start calibration process
   const startCalibration = useCallback(() => {
@@ -176,9 +168,21 @@ export const useGazeEstimator = (
     }
   }, []);
 
-  // Auto-initialize if requested
+  // Update loading progress based on React Query state
   useEffect(() => {
-    if (autoStart) {
+    if (isModelLoading) {
+      setModelLoadingProgress(50); // Mid-way progress while loading
+    } else if (isModelReady) {
+      setModelLoadingProgress(100);
+    } else if (modelError) {
+      setModelLoadingProgress(0);
+      setError(modelError);
+    }
+  }, [isModelLoading, isModelReady, modelError]);
+
+  // Auto-initialize when model is ready
+  useEffect(() => {
+    if (autoStart && isModelReady && faceModel) {
       const initAsync = async () => {
         try {
           await initialize();
@@ -188,24 +192,11 @@ export const useGazeEstimator = (
       };
       initAsync();
     }
-
-    return () => {
-      // Cleanup
-      if (faceMeshModelRef.current && typeof faceMeshModelRef.current.dispose === 'function') {
-        faceMeshModelRef.current.dispose();
-      }
-      faceMeshModelRef.current = null;
-      gazeEstimatorRef.current = null;
-    };
-  }, [autoStart, initialize]);
+  }, [autoStart, isModelReady, faceModel, initialize]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (faceMeshModelRef.current && typeof faceMeshModelRef.current.dispose === 'function') {
-        faceMeshModelRef.current.dispose();
-      }
-      faceMeshModelRef.current = null;
       gazeEstimatorRef.current = null;
     };
   }, []);

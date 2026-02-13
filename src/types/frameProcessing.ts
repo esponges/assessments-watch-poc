@@ -1,9 +1,8 @@
-import type * as tf from '@tensorflow/tfjs';
+import type { Pipeline } from '@xenova/transformers';
 import type { FaceDetectionResult } from './faceDetection';
 
 export interface FrameData {
   imageData: ImageData;
-  tensor?: tf.Tensor3D;
   timestamp: number;
   width: number;
   height: number;
@@ -50,6 +49,7 @@ export interface FrameExtractionOptions {
   onError?: (error: Error) => void;
   onStatsUpdate?: (stats: FrameProcessingStats) => void;
   config?: Partial<FrameExtractionConfig>;
+  faceDetectionModel?: Pipeline; // AI model for face detection
 }
 
 export interface CanvasUtils {

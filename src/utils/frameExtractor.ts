@@ -1,4 +1,5 @@
 // Note: Frame extraction now works without TensorFlow.js dependency
+import type { Pipeline } from '@xenova/transformers';
 import { createFaceDetector, type FaceDetector } from './faceDetector';
 import type {
   FrameData,
@@ -134,7 +135,7 @@ export const imageDataToCanvas = (imageData: ImageData): HTMLCanvasElement => {
 export const createFrameData = (
   imageData: ImageData, 
   timestamp: number,
-  createTensor: boolean = false
+  _createTensor: boolean = false // Unused but kept for compatibility
 ): FrameData => {
   const frameId = `frame_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
   
@@ -146,9 +147,7 @@ export const createFrameData = (
     frameId
   };
 
-  if (createTensor) {
-    frameData.tensor = imageDataToTensor(imageData);
-  }
+  // Note: No longer creating tensors, using canvas elements for Transformers.js
 
   return frameData;
 };
@@ -158,6 +157,7 @@ export class FrameExtractor implements FrameProcessor {
   private videoElement: HTMLVideoElement;
   private canvasUtils: CanvasUtils;
   private faceDetector?: FaceDetector;
+  private faceDetectionModel?: Pipeline; // Store the face detection model
   private animationId: number | null = null;
   private lastFrameTime: number = 0;
   private intervalId: ReturnType<typeof setInterval> | null = null;
@@ -176,6 +176,7 @@ export class FrameExtractor implements FrameProcessor {
     this.onFrameCallback = options.onFrame;
     this.onErrorCallback = options.onError;
     this.onStatsCallback = options.onStatsUpdate;
+    this.faceDetectionModel = options.faceDetectionModel; // Store the AI model
 
     // Initialize stats
     this.stats = {
@@ -213,6 +214,8 @@ export class FrameExtractor implements FrameProcessor {
 
   private async initializeFaceDetection(): Promise<void> {
     try {
+      console.log('[FrameExtractor] Initializing face detection with model:', !!this.faceDetectionModel);
+      
       const faceDetectionOptions: FaceDetectionOptions = {
         config: {
           maxFaces: 5,
@@ -221,17 +224,25 @@ export class FrameExtractor implements FrameProcessor {
           debugMode: false
         },
         onError: (error) => {
-          console.error('Face detection error:', error);
+          console.error('[FrameExtractor] Face detection error:', error);
           this.onErrorCallback?.(error);
         }
       };
 
       this.faceDetector = createFaceDetector(faceDetectionOptions);
-      await this.faceDetector.initialize();
       
-      console.log('Face detector initialized successfully');
+      // Pass the AI model if available
+      if (this.faceDetectionModel) {
+        console.log('[FrameExtractor] Initializing face detector with AI model');
+        await this.faceDetector.initialize(this.faceDetectionModel);
+      } else {
+        console.log('[FrameExtractor] Initializing face detector without model');
+        await this.faceDetector.initialize();
+      }
+      
+      console.log('[FrameExtractor] Face detector initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize face detector:', error);
+      console.error('[FrameExtractor] Failed to initialize face detector:', error);
       this.faceDetector = undefined;
     }
   }

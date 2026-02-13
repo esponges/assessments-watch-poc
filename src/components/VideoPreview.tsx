@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import type { VideoPreviewProps, VideoPreviewState } from '../types/video';
 import type { FrameData } from '../types/frameProcessing';
 import type { FaceDetectionResult } from '../types/faceDetection';
@@ -50,64 +50,17 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   }, [enableFrameProcessing]);
 
   // Event collection system
-  const eventCollector = useEventCollector({
+  const eventCollectorOptions = useMemo(() => ({
     maxEvents: 1000,
     autoCleanup: true,
     enableValidation: true,
     autoStart: enableFrameProcessing
-  });
+  }), [enableFrameProcessing]);
 
-  // Score management system
-  const scoreManager = useScoreManager({
-    config: {
-      multipleFacePoints: 10, // +10 points per spec
-      lookingAwayPoints: 3,   // +3 points per spec
-      lookingAwayThreshold: 5000, // 5 seconds
-      flagThreshold: 8, // 8+ points triggers flag per spec
-      scoreDecayEnabled: false,
-      scoreDecayRate: 0.5,
-      maxScore: 100
-    },
-    onScoreChange: (change, stats) => {
-      console.log('Score changed:', change, stats);
-      
-      // Update assessment logger with new scoring stats
-      if (assessmentLogger.isSessionActive) {
-        assessmentLogger.updateScoringStats(stats);
-      }
-    },
-    onFlagRaised: (flag, stats) => {
-      console.log('Flag raised:', flag, stats);
-      
-      // Add flag to assessment logger
-      if (assessmentLogger.isSessionActive) {
-        assessmentLogger.addFlag(flag);
-      }
-      
-      // Add flag event to event collector
-      if (eventCollector.isActive) {
-        eventCollector.addEvent({
-          type: 'flag_raised',
-          confidence: 1.0,
-          flagData: {
-            flagLevel: flag.level,
-            reason: flag.reason,
-            score: flag.score,
-            triggeringEvents: flag.triggeringEvents,
-            automaticFlag: true
-          }
-        });
-      }
-    },
-    onError: (error) => {
-      console.error('Score manager error:', error);
-      onStreamError?.(error.message);
-    },
-    autoStart: enableFrameProcessing
-  });
+  const eventCollector = useEventCollector(eventCollectorOptions);
 
-  // Assessment JSON logging system
-  const assessmentLogger = useAssessmentLogger({
+  // Assessment JSON logging system first (needed by scoreManager)
+  const assessmentLoggerOptions = useMemo(() => ({
     config: {
       enableRealTimeLogging: true,
       autoGenerateIds: true,
@@ -116,12 +69,8 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       compressOutput: false,
       maxEventHistory: 1000,
       eventDeduplication: true,
-      timestampPrecision: 'milliseconds',
-      includeSystemEvents: true,
-      anonymizeData: false
+      preserveEventHistory: false
     },
-    assessmentId: `assessment_${Date.now()}`,
-    studentId: `student_${Math.random().toString(36).substr(2, 8)}`,
     onLogGenerated: (log) => {
       console.log('Assessment log generated:', log);
     },
@@ -130,7 +79,69 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       onStreamError?.(error.message);
     },
     autoStart: enableFrameProcessing
-  });
+  }), [enableFrameProcessing, onStreamError]);
+
+  const assessmentLogger = useAssessmentLogger(assessmentLoggerOptions);
+
+  // Score management callbacks
+  const onScoreChange = useCallback((change, stats) => {
+    console.log('Score changed:', change, stats);
+    
+    // Update assessment logger with new scoring stats
+    if (assessmentLogger.isSessionActive) {
+      assessmentLogger.updateScoringStats(stats);
+    }
+  }, [assessmentLogger]);
+
+  const onFlagRaised = useCallback((flag, stats) => {
+    console.log('Flag raised:', flag, stats);
+    
+    // Add flag to assessment logger
+    if (assessmentLogger.isSessionActive) {
+      assessmentLogger.addFlag(flag);
+    }
+    
+    // Add flag event to event collector
+    if (eventCollector.isActive) {
+      eventCollector.addEvent({
+        type: 'flag_raised',
+        confidence: 1.0,
+        flagData: {
+          flagLevel: flag.level,
+          reason: flag.reason,
+          score: flag.score,
+          triggeringEvents: flag.triggeringEvents,
+          automaticFlag: true
+        }
+      });
+    }
+  }, [assessmentLogger, eventCollector]);
+
+  // Score management system config
+  const scoreManagerConfig = useMemo(() => ({
+    multipleFacePoints: 10, // +10 points per spec
+    lookingAwayPoints: 3,   // +3 points per spec
+    lookingAwayThreshold: 5000, // 5 seconds
+    flagThreshold: 8, // 8+ points triggers flag per spec
+    scoreDecayEnabled: false,
+    scoreDecayRate: 0.5,
+    maxScore: 100
+  }), []);
+
+  const scoreManagerOptions = useMemo(() => ({
+    config: scoreManagerConfig,
+    onScoreChange,
+    onFlagRaised,
+    onError: (error) => {
+      console.error('Score manager error:', error);
+      onStreamError?.(error.message);
+    },
+    autoStart: enableFrameProcessing
+  }), [scoreManagerConfig, onScoreChange, onFlagRaised, enableFrameProcessing, onStreamError]);
+
+  // Score management system
+  const scoreManager = useScoreManager(scoreManagerOptions);
+
 
   // Event logging (keeping for backward compatibility)
   const logger = useFaceCountLogger({

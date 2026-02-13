@@ -379,7 +379,7 @@ export const useAssessmentLogger = (
       setIsLogging(false);
       setIsSessionActive(false);
     };
-  }, [autoStart, options.assessmentId, options.studentId]);
+  }, [autoStart]);
 
   return {
     startSession,
