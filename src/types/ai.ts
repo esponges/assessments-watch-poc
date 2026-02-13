@@ -1,4 +1,4 @@
-export type AIModelType = 'blazeface' | 'facemesh' | 'posenet' | 'mobilenet';
+export type AIModelType = 'object-detection' | 'face-detection' | 'pose-estimation' | 'image-classification';
 
 export type ModelLoadingState = 'idle' | 'loading' | 'loaded' | 'error' | 'failed';
 

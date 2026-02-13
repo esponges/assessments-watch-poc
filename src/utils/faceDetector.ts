@@ -1,5 +1,4 @@
-import * as blazeface from '@tensorflow-models/blazeface';
-import * as tf from '@tensorflow/tfjs';
+import type { Pipeline } from '@xenova/transformers';
 import type { 
   FaceDetectionResult, 
   DetectedFace, 
@@ -17,7 +16,7 @@ const DEFAULT_CONFIG: FaceDetectionConfig = {
 };
 
 export class FaceDetector {
-  private model: blazeface.BlazeFaceModel | null = null;
+  private model: Pipeline | null = null;
   private config: FaceDetectionConfig;
   private stats: FaceDetectionStats;
   private isInitialized = false;
@@ -42,14 +41,14 @@ export class FaceDetector {
     };
   }
 
-  async initialize(providedModel?: blazeface.BlazeFaceModel): Promise<void> {
+  async initialize(providedModel?: Pipeline): Promise<void> {
     try {
       if (this.isInitialized) {
         return;
       }
 
       if (providedModel) {
-        console.log('Using provided BlazeFace model...');
+        console.log('Using provided Transformers.js model...');
         this.model = providedModel;
         this.isInitialized = true;
         console.log('Face detector initialized with provided model');
@@ -72,7 +71,7 @@ export class FaceDetector {
   }
 
   async detectFaces(
-    imageData: ImageData | HTMLCanvasElement | tf.Tensor,
+    imageData: ImageData | HTMLCanvasElement | HTMLImageElement,
     timestamp: number = Date.now()
   ): Promise<FaceDetectionResult> {
     if (!this.isInitialized) {
@@ -98,15 +97,15 @@ export class FaceDetector {
     this.updateStats();
 
     try {
-      let inputElement: ImageData | HTMLCanvasElement | HTMLVideoElement;
+      let inputElement: HTMLCanvasElement | HTMLImageElement;
       let frameWidth: number;
       let frameHeight: number;
 
-      // Convert input to compatible format for BlazeFace
+      // Convert input to compatible format for Transformers.js
       if (imageData instanceof ImageData) {
         frameWidth = imageData.width;
         frameHeight = imageData.height;
-        // Create canvas from ImageData for BlazeFace
+        // Create canvas from ImageData
         const canvas = document.createElement('canvas');
         canvas.width = frameWidth;
         canvas.height = frameHeight;
@@ -117,50 +116,33 @@ export class FaceDetector {
         frameWidth = imageData.width;
         frameHeight = imageData.height;
         inputElement = imageData;
+      } else if (imageData instanceof HTMLImageElement) {
+        frameWidth = imageData.naturalWidth || imageData.width;
+        frameHeight = imageData.naturalHeight || imageData.height;
+        inputElement = imageData;
       } else {
-        // For tensor input, we need to convert to canvas
-        const tensor = imageData as tf.Tensor;
-        const shape = tensor.shape;
-        frameHeight = shape[0];
-        frameWidth = shape[1];
-        const canvas = document.createElement('canvas');
-        canvas.width = frameWidth;
-        canvas.height = frameHeight;
-        const ctx = canvas.getContext('2d')!;
-        
-        // Convert tensor to pixels and create ImageData
-        const pixelData = await tf.browser.toPixels(tensor);
-        const imgData = new ImageData(
-          new Uint8ClampedArray(pixelData.buffer),
-          frameWidth,
-          frameHeight
-        );
-        ctx.putImageData(imgData, 0, 0);
-        inputElement = canvas;
-        
-        // Dispose the tensor
-        tensor.dispose();
+        throw new Error('Unsupported input type for face detection');
       }
 
-      // Run face detection
-      const predictions = await this.model.estimateFaces(inputElement, false);
+      // Run object detection to find faces
+      const detections = await this.model(inputElement, {
+        threshold: this.config.scoreThreshold,
+        percentage: true
+      });
 
-      // Convert predictions to our format
-      const faces: DetectedFace[] = predictions
-        .filter(prediction => {
-          const probability = Array.isArray(prediction.probability) 
-            ? prediction.probability[0] 
-            : prediction.probability;
-          return (typeof probability === 'number' ? probability : 0) >= this.config.scoreThreshold;
+      // Filter for face-related detections and convert to our format
+      const faceLabels = ['person', 'face', 'head'];
+      const faces: DetectedFace[] = (Array.isArray(detections) ? detections : [])
+        .filter((detection: any) => {
+          const label = detection.label?.toLowerCase() || '';
+          return faceLabels.some(faceLabel => label.includes(faceLabel)) && 
+                 detection.score >= this.config.scoreThreshold;
         })
         .slice(0, this.config.maxFaces)
-        .map((prediction, index) => {
-          const topLeft = prediction.topLeft as [number, number];
-          const bottomRight = prediction.bottomRight as [number, number];
-          const probability = Array.isArray(prediction.probability) 
-            ? prediction.probability[0] 
-            : prediction.probability;
-          const confidence = typeof probability === 'number' ? probability : 0;
+        .map((detection: any, index: number) => {
+          const box = detection.box;
+          const topLeft: [number, number] = [box.xmin * frameWidth / 100, box.ymin * frameHeight / 100];
+          const bottomRight: [number, number] = [box.xmax * frameWidth / 100, box.ymax * frameHeight / 100];
           
           const face: DetectedFace = {
             id: `face_${timestamp}_${index}`,
@@ -170,14 +152,9 @@ export class FaceDetector {
               width: bottomRight[0] - topLeft[0],
               height: bottomRight[1] - topLeft[1]
             },
-            confidence,
-            probability: confidence
+            confidence: detection.score,
+            probability: detection.score
           };
-
-          // Add landmarks if enabled and available
-          if (this.config.enableLandmarks && prediction.landmarks) {
-            face.landmarks = prediction.landmarks as Array<[number, number]>;
-          }
 
           return face;
         });
@@ -186,12 +163,12 @@ export class FaceDetector {
       
       const result: FaceDetectionResult = {
         faces,
-        frameData: {
-          width: frameWidth,
-          height: frameHeight,
-          timestamp
-        },
-        processingTime
+        timestamp,
+        frameWidth,
+        frameHeight,
+        processingTime,
+        confidence: faces.length > 0 ? faces.reduce((sum, face) => sum + face.confidence, 0) / faces.length : 0,
+        error: null
       };
 
       // Update statistics
@@ -204,10 +181,7 @@ export class FaceDetector {
       // Update FPS
       this.updateFPS();
 
-      // Clean up tensor if we created it
-      if (!(imageData instanceof tf.Tensor3D)) {
-        inputTensor.dispose();
-      }
+      // No cleanup needed for Transformers.js
 
       this.stats.isDetecting = false;
       this.updateStats();

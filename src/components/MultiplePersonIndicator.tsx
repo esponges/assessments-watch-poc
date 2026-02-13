@@ -32,7 +32,7 @@ const MultiplePersonIndicator: React.FC<MultiplePersonIndicatorProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [detectionStatus?.lastEvent?.id, lastEventId]);
+  }, [detectionStatus?.lastEvent?.id]);
 
   if (!isVisible || !detectionStatus) {
     return null;

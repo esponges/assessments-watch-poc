@@ -16,10 +16,10 @@ import { AIContext, type AIContextValue } from './AIContext';
 
 const createInitialState = (): AIModelState => ({
   models: {
-    blazeface: { instance: null, state: 'idle' },
-    facemesh: { instance: null, state: 'idle' },
-    posenet: { instance: null, state: 'idle' },
-    mobilenet: { instance: null, state: 'idle' }
+    'object-detection': { instance: null, state: 'idle' },
+    'face-detection': { instance: null, state: 'idle' },
+    'pose-estimation': { instance: null, state: 'idle' },
+    'image-classification': { instance: null, state: 'idle' }
   },
   isInitialized: false,
   isReady: false

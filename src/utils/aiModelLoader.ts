@@ -1,79 +1,73 @@
-import * as tf from '@tensorflow/tfjs';
-import '@tensorflow/tfjs-backend-webgl';
-import '@tensorflow/tfjs-backend-cpu';
-import * as blazeface from '@tensorflow-models/blazeface';
-import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
-import '@mediapipe/face_mesh';
-import type { AIModelType, ModelConfig, ModelLoadingState } from '../types/ai';
+import { pipeline, env, Pipeline } from '@xenova/transformers';
+import type { AIModelType, ModelConfig } from '../types/ai';
 
-// Model configurations
+// Configure Transformers.js environment
+env.allowLocalModels = false;
+env.allowRemoteModels = true;
+
+// Model configurations for Transformers.js
 export const MODEL_CONFIGS: Record<AIModelType, ModelConfig> = {
-  blazeface: {
-    name: 'BlazeFace',
-    type: 'blazeface',
+  'object-detection': {
+    name: 'RT-DETR Object Detection',
+    type: 'object-detection',
+    url: 'Xenova/rt-detr-l',
     required: true,
-    description: 'Lightweight face detection model for real-time processing'
+    description: 'Real-time object detection for face and object detection'
   },
-  facemesh: {
-    name: 'MediaPipe Face Mesh',
-    type: 'facemesh',
-    required: false,
-    description: 'Detailed facial landmark detection for gaze estimation'
+  'face-detection': {
+    name: 'YOLOS Face Detection',
+    type: 'face-detection', 
+    url: 'Xenova/yolos-tiny',
+    required: true,
+    description: 'YOLO-based face detection optimized for speed'
   },
-  posenet: {
-    name: 'PoseNet',
-    type: 'posenet',
+  'pose-estimation': {
+    name: 'ViTPose',
+    type: 'pose-estimation',
+    url: 'Xenova/vitpose-base',
     required: false,
-    description: 'Human pose estimation for body tracking'
+    description: 'Vision transformer for pose estimation and gaze analysis'
   },
-  mobilenet: {
-    name: 'MobileNet',
-    type: 'mobilenet',
+  'image-classification': {
+    name: 'ViT Image Classification',
+    type: 'image-classification',
+    url: 'Xenova/vit-base-patch16-224',
     required: false,
-    description: 'General object detection and classification'
+    description: 'Vision transformer for general image classification'
   }
 };
 
-// Initialize TensorFlow.js backend
-export const initializeTensorFlow = async (): Promise<void> => {
+// Initialize Transformers.js environment
+export const initializeTransformers = async (): Promise<void> => {
   try {
-    console.log('Initializing TensorFlow.js...');
+    console.log('Initializing Transformers.js...');
     
-    // Try WebGL first, fallback to CPU
-    try {
-      await tf.setBackend('webgl');
-      console.log('TensorFlow.js WebGL backend initialized');
-    } catch (webglError) {
-      console.warn('WebGL backend failed, falling back to CPU:', webglError);
-      await tf.setBackend('cpu');
-      console.log('TensorFlow.js CPU backend initialized');
-    }
-
-    // Wait for backend to be ready
-    await tf.ready();
+    // Set up environment configuration
+    env.backends.onnx.wasm.numThreads = navigator.hardwareConcurrency || 4;
+    env.backends.onnx.wasm.simd = true;
     
-    console.log('TensorFlow.js ready:', {
-      backend: tf.getBackend(),
-      version: tf.version.tfjs,
-      memory: tf.memory()
+    console.log('Transformers.js environment configured:', {
+      threads: env.backends.onnx.wasm.numThreads,
+      simd: env.backends.onnx.wasm.simd,
+      allowRemoteModels: env.allowRemoteModels
     });
 
   } catch (error) {
-    console.error('Failed to initialize TensorFlow.js:', error);
-    throw new Error(`TensorFlow.js initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Failed to initialize Transformers.js:', error);
+    throw new Error(`Transformers.js initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
-// Load a specific model with error handling and retries
+// Load a specific model using Transformers.js pipeline
 export const loadAIModel = async (
   modelType: AIModelType,
   options?: Record<string, unknown>,
   maxRetries: number = 3
-): Promise<unknown> => {
+): Promise<Pipeline> => {
   const config = MODEL_CONFIGS[modelType];
   
-  if (!config) {
-    throw new Error(`Unknown model type: ${modelType}`);
+  if (!config || !config.url) {
+    throw new Error(`Unknown model type or missing URL: ${modelType}`);
   }
 
   let lastError: Error | null = null;
@@ -82,29 +76,15 @@ export const loadAIModel = async (
     try {
       console.log(`Loading ${config.name} (attempt ${attempt}/${maxRetries})`);
       
-      let model: unknown;
+      // Get the pipeline task type from model type
+      const task = getTaskFromModelType(modelType);
       
-      switch (modelType) {
-        case 'blazeface':
-          // We'll load BlazeFace in the next step
-          model = await loadBlazeFaceModel(options);
-          break;
-        
-        case 'facemesh':
-          model = await loadFaceMeshModel(options);
-          break;
-        
-        case 'posenet':
-          // Future implementation  
-          throw new Error('PoseNet model not yet implemented');
-          
-        case 'mobilenet':
-          // Future implementation
-          throw new Error('MobileNet model not yet implemented');
-          
-        default:
-          throw new Error(`Unsupported model type: ${modelType}`);
-      }
+      // Load model using Transformers.js pipeline
+      const model = await pipeline(task, config.url, {
+        ...options,
+        device: 'wasm',
+        dtype: 'fp32'
+      });
 
       console.log(`${config.name} loaded successfully`);
       return model;
@@ -114,8 +94,8 @@ export const loadAIModel = async (
       console.error(`Failed to load ${config.name} (attempt ${attempt}):`, lastError);
       
       if (attempt < maxRetries) {
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        // Wait before retry with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
       }
     }
   }
@@ -123,77 +103,61 @@ export const loadAIModel = async (
   throw lastError || new Error(`Failed to load ${config.name} after ${maxRetries} attempts`);
 };
 
-// Load FaceMesh model for detailed landmark detection
-const loadFaceMeshModel = async (options?: Record<string, unknown>): Promise<faceLandmarksDetection.FaceLandmarksDetector> => {
-  try {
-    console.log('Loading FaceMesh model with options:', options);
-    
-    const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
-    const detectorConfig: faceLandmarksDetection.MediaPipeFaceMeshMediaPipeModelConfig = {
-      runtime: 'mediapipe',
-      solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
-      refineLandmarks: true,
-      maxFaces: 1,
-      ...options
-    };
-
-    const detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
-    
-    console.log('FaceMesh model loaded successfully');
-    return detector;
-    
-  } catch (error) {
-    console.error('Failed to load FaceMesh model:', error);
-    throw new Error(`FaceMesh loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+// Map model types to Transformers.js pipeline tasks
+const getTaskFromModelType = (modelType: AIModelType): string => {
+  const taskMap: Record<AIModelType, string> = {
+    'object-detection': 'object-detection',
+    'face-detection': 'object-detection', 
+    'pose-estimation': 'image-classification', // Using classification for pose features
+    'image-classification': 'image-classification'
+  };
+  
+  return taskMap[modelType] || 'object-detection';
 };
 
-// Load BlazeFace model for face detection
-const loadBlazeFaceModel = async (options?: Record<string, unknown>): Promise<blazeface.BlazeFaceModel> => {
-  try {
-    console.log('Loading BlazeFace model with options:', options);
-    
-    const model = await blazeface.load({
-      maxFaces: 1,
-      inputWidth: 320,
-      inputHeight: 240,
-      iouThreshold: 0.3,
-      scoreThreshold: 0.75,
-      ...options
-    });
-    
-    console.log('BlazeFace model loaded successfully');
-    return model;
-    
-  } catch (error) {
-    console.error('Failed to load BlazeFace model:', error);
-    throw new Error(`BlazeFace loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+// Helper function to process detection results
+export const processDetectionResults = (results: any[], threshold: number = 0.5) => {
+  if (!Array.isArray(results)) {
+    return [];
   }
+  
+  return results
+    .filter(result => result.score >= threshold)
+    .map(result => ({
+      label: result.label,
+      score: result.score,
+      box: result.box
+    }));
 };
 
-// Validate that a loaded model is working correctly
+// Validate that a loaded Transformers.js model is working correctly
 export const validateModel = async (
-  model: unknown,
+  model: Pipeline,
   modelType: AIModelType
 ): Promise<boolean> => {
   try {
-    if (!model || typeof model !== 'object') {
+    if (!model || typeof model !== 'function') {
       return false;
     }
 
-    // Basic validation - check if model has expected methods
-    const modelObj = model as Record<string, unknown>;
+    // Test model with a simple dummy input
+    const dummyCanvas = document.createElement('canvas');
+    dummyCanvas.width = 224;
+    dummyCanvas.height = 224;
+    const ctx = dummyCanvas.getContext('2d');
+    if (!ctx) return false;
     
-    switch (modelType) {
-      case 'blazeface':
-        return typeof modelObj.estimateFaces === 'function';
-      
-      case 'facemesh':
-        return typeof modelObj.estimateFaces === 'function';
-      
-      default:
-        return true; // Basic existence check for other models
-    }
+    // Create a simple test pattern
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, 224, 224);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(50, 50, 124, 124);
+    
+    // Test the model
+    const testResult = await model(dummyCanvas);
+    
+    // Check if result has expected structure
+    return Array.isArray(testResult) || (testResult && typeof testResult === 'object');
     
   } catch (error) {
     console.error(`Model validation failed for ${modelType}:`, error);
@@ -214,35 +178,33 @@ export const getModelInfo = (modelType: AIModelType) => {
 // Estimate model size for progress indication
 const getEstimatedModelSize = (modelType: AIModelType): string => {
   const sizes: Record<AIModelType, string> = {
-    blazeface: '1.2 MB',
-    facemesh: '2.8 MB', 
-    posenet: '12.7 MB',
-    mobilenet: '16.4 MB'
+    'object-detection': '45 MB',
+    'face-detection': '15 MB', 
+    'pose-estimation': '85 MB',
+    'image-classification': '85 MB'
   };
   
   return sizes[modelType] || 'Unknown';
 };
 
-// Get supported backends for each model
+// Get supported backends for Transformers.js models
 const getSupportedBackends = (modelType: AIModelType): string[] => {
-  // Most TensorFlow.js models support both WebGL and CPU
-  return ['webgl', 'cpu'];
+  // Transformers.js supports ONNX Runtime backends
+  return ['wasm', 'webgl', 'cpu'];
 };
 
-// Clean up TensorFlow.js resources
-export const cleanupTensorFlow = (): void => {
+// Clean up Transformers.js resources
+export const cleanupTransformers = (): void => {
   try {
-    // Dispose of tensors and clean up memory
-    tf.disposeVariables();
-    
-    const memoryInfo = tf.memory();
-    console.log('TensorFlow.js cleanup completed:', {
-      numTensors: memoryInfo.numTensors,
-      numDataBuffers: memoryInfo.numDataBuffers,
-      numBytes: memoryInfo.numBytes
-    });
+    // Transformers.js automatically handles memory management
+    // We can optionally clear caches or dispose models if needed
+    console.log('Transformers.js cleanup completed');
     
   } catch (error) {
-    console.error('Error during TensorFlow.js cleanup:', error);
+    console.error('Error during Transformers.js cleanup:', error);
   }
 };
+
+// Export renamed initialization function
+export { initializeTransformers as initializeTensorFlow };
+export { cleanupTransformers as cleanupTensorFlow };

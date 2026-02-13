@@ -16,7 +16,7 @@ interface UseFaceDetectionOptions {
 
 interface UseFaceDetectionReturn {
   initialize: () => Promise<void>;
-  detectFaces: (imageData: ImageData | HTMLCanvasElement, timestamp?: number) => Promise<FaceDetectionResult>;
+  detectFaces: (imageData: ImageData | HTMLCanvasElement | HTMLImageElement, timestamp?: number) => Promise<FaceDetectionResult>;
   updateConfig: (config: Partial<FaceDetectionConfig>) => void;
   reset: () => void;
   dispose: () => void;
@@ -101,7 +101,7 @@ export const useFaceDetection = (
 
   // Detect faces in image data
   const detectFaces = useCallback(async (
-    imageData: ImageData | HTMLCanvasElement, 
+    imageData: ImageData | HTMLCanvasElement | HTMLImageElement, 
     timestamp: number = Date.now()
   ): Promise<FaceDetectionResult> => {
     if (!detectorRef.current) {
