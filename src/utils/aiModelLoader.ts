@@ -8,25 +8,25 @@ env.allowRemoteModels = true;
 // Model configurations for Transformers.js
 export const MODEL_CONFIGS: Record<AIModelType, ModelConfig> = {
   'object-detection': {
-    name: 'RT-DETR Object Detection',
+    name: 'DETR Object Detection',
     type: 'object-detection',
-    url: 'Xenova/rt-detr-l',
+    url: 'Xenova/detr-resnet-50',
     required: true,
-    description: 'Real-time object detection for face and object detection'
+    description: 'DETR model for object detection including face detection'
   },
   'face-detection': {
-    name: 'YOLOS Face Detection',
+    name: 'DETR Face Detection',
     type: 'face-detection', 
-    url: 'Xenova/yolos-tiny',
+    url: 'Xenova/detr-resnet-50',
     required: true,
-    description: 'YOLO-based face detection optimized for speed'
+    description: 'DETR model for face detection'
   },
   'pose-estimation': {
-    name: 'ViTPose',
+    name: 'OWL-ViT Zero-shot Detection',
     type: 'pose-estimation',
-    url: 'Xenova/vitpose-base',
+    url: 'Xenova/owlvit-base-patch32',
     required: false,
-    description: 'Vision transformer for pose estimation and gaze analysis'
+    description: 'Zero-shot object detection for pose and object analysis'
   },
   'image-classification': {
     name: 'ViT Image Classification',
@@ -108,7 +108,7 @@ const getTaskFromModelType = (modelType: AIModelType): string => {
   const taskMap: Record<AIModelType, string> = {
     'object-detection': 'object-detection',
     'face-detection': 'object-detection', 
-    'pose-estimation': 'image-classification', // Using classification for pose features
+    'pose-estimation': 'zero-shot-object-detection', // OWL-ViT uses zero-shot detection
     'image-classification': 'image-classification'
   };
   
