@@ -132,13 +132,13 @@ const Assessment: React.FC = () => {
     console.error('Camera permission denied:', error);
   };
 
-  const handleVideoStreamError = (errorMessage: string) => {
+  const handleVideoStreamError = useCallback((errorMessage: string) => {
     console.error('Video stream error:', errorMessage);
-  };
+  }, []);
 
-  const handleToggleVideoVisibility = () => {
+  const handleToggleVideoVisibility = useCallback(() => {
     setIsVideoVisible(prev => !prev);
-  };
+  }, []);
 
   const handleRecordingComplete = (blob: Blob, duration: number, mimeType: string) => {
     const file = fileManager.addFile(blob, duration, mimeType);

@@ -91,7 +91,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     if (assessmentLogger.isSessionActive) {
       assessmentLogger.updateScoringStats(stats);
     }
-  }, [assessmentLogger]);
+  }, []);
 
   const onFlagRaised = useCallback((flag, stats) => {
     console.log('Flag raised:', flag, stats);
@@ -115,7 +115,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         }
       });
     }
-  }, [assessmentLogger, eventCollector]);
+  }, []);
 
   // Score management system config
   const scoreManagerConfig = useMemo(() => ({
@@ -149,9 +149,8 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     maxEvents: 500
   });
 
-  // Multiple person detection with scoring
-  // Gaze tracking system
-  const gazeEstimator = useGazeEstimator({
+  // Gaze tracking system options
+  const gazeEstimatorOptions = useMemo(() => ({
     config: {
       lookAwayThreshold: 25, // degrees
       confidenceThreshold: 0.6,
@@ -184,10 +183,12 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       onStreamError?.(error.message);
     },
     autoStart: enableFrameProcessing
-  });
+  }), [enableFrameProcessing, onStreamError]);
+  
+  const gazeEstimator = useGazeEstimator(gazeEstimatorOptions);
 
-  // Looking away detection system
-  const lookingAwayDetector = useLookingAwayDetector({
+  // Looking away detection system options  
+  const lookingAwayDetectorOptions = useMemo(() => ({
     config: {
       lookAwayThreshold: 30, // degrees
       sustainedThreshold: 5000, // 5 seconds
@@ -238,9 +239,12 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       onStreamError?.(error.message);
     },
     autoStart: enableFrameProcessing
-  });
+  }), [enableFrameProcessing, onStreamError]);
+  
+  const lookingAwayDetector = useLookingAwayDetector(lookingAwayDetectorOptions);
 
-  const multiplePersonDetector = useMultiplePersonDetector({
+  // Multiple person detector options
+  const multiplePersonDetectorOptions = useMemo(() => ({
     onScoreChange: (scoreStatus) => {
       console.log('Score changed:', scoreStatus);
     },
@@ -305,10 +309,12 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       maxScoreHistory: 50
     },
     autoStart: enableFrameProcessing
-  });
+  }), [enableFrameProcessing, onStreamError]);
+  
+  const multiplePersonDetector = useMultiplePersonDetector(multiplePersonDetectorOptions);
 
-  // Face counting with integrated event collection
-  const faceCounter = useFaceCounter({
+  // Face counter options
+  const faceCounterOptions = useMemo(() => ({
     onCountChange: (event: FaceCountEvent) => {
       console.log('Face count event:', event);
       
@@ -371,7 +377,10 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       alertSensitivity: 0.8
     },
     autoStart: enableFrameProcessing
-  });
+  }), [enableFrameProcessing, onStreamError]);
+  
+  // Face counting with integrated event collection
+  const faceCounter = useFaceCounter(faceCounterOptions);
 
   // Process looking away detection when gaze estimation updates
   useEffect(() => {

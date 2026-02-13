@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Home from './pages/Home';
 import Assessment from './pages/Assessment';
+import AssessmentStart from './pages/AssessmentStart';
 import Dashboard from './pages/Dashboard';
 import './App.css';
 
@@ -16,7 +17,7 @@ function App() {
                 <Link to="/" className="nav-link">Home</Link>
               </li>
               <li className="nav-item">
-                <Link to="/assessment" className="nav-link">Assessment</Link>
+                <Link to="/assessment/start" className="nav-link">Start Assessment</Link>
               </li>
               <li className="nav-item">
                 <Link to="/dashboard" className="nav-link">Dashboard</Link>
@@ -29,6 +30,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/assessment" element={<Assessment />} />
+            <Route path="/assessment/start" element={<AssessmentStart />} />
             <Route path="/dashboard" element={<Dashboard />} />
           </Routes>
         </main>
