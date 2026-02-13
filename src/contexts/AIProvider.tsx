@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { 
   AIModelType, 
   AIModelState, 
-  ModelLoadingState, 
+  ModelLoadingState,
   ModelLoadingProgress 
 } from '../types/ai';
 import { 
@@ -12,6 +12,7 @@ import {
   cleanupTensorFlow,
   MODEL_CONFIGS 
 } from '../utils/aiModelLoader';
+import { AIContext, type AIContextValue } from './AIContext';
 
 const createInitialState = (): AIModelState => ({
   models: {
@@ -24,34 +25,12 @@ const createInitialState = (): AIModelState => ({
   isReady: false
 });
 
-interface AIContextValue {
-  modelState: AIModelState;
-  isReady: boolean;
-  initializeAI: () => Promise<void>;
-  loadModel: (modelType: AIModelType) => Promise<void>;
-  loadAllModels: () => Promise<void>;
-  getModel: <T>(modelType: AIModelType) => T | null;
-  isModelReady: (modelType: AIModelType) => boolean;
-  reinitialize: () => Promise<void>;
-  getLoadingProgress: () => ModelLoadingProgress[];
-}
-
-const AIContext = createContext<AIContextValue | null>(null);
-
-export const useAIContext = (): AIContextValue => {
-  const context = useContext(AIContext);
-  if (!context) {
-    throw new Error('useAIContext must be used within an AIProvider');
-  }
-  return context;
-};
-
 interface AIProviderProps {
   children: React.ReactNode;
   autoInitialize?: boolean;
 }
 
-export const AIProvider: React.FC<AIProviderProps> = ({ 
+const AIProvider: React.FC<AIProviderProps> = ({ 
   children, 
   autoInitialize = true 
 }) => {
@@ -299,7 +278,7 @@ export const AIProvider: React.FC<AIProviderProps> = ({
       isUnmountedRef.current = true;
       cleanupTensorFlow();
     };
-  }, []); // Empty dependency array is correct here for initialization
+  }, [autoInitialize, initializeAI, loadAllModels]);
 
   const contextValue: AIContextValue = {
     modelState,

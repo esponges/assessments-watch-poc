@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { AIProvider } from './contexts/AIContext';
+import AIProvider from './contexts/AIProvider';
 import Home from './pages/Home';
 import Assessment from './pages/Assessment';
 import Dashboard from './pages/Dashboard';

@@ -1,5 +1,5 @@
 import type { UseAIReturn } from '../types/ai';
-import { useAIContext } from '../contexts/AIContext';
+import { useAIContext } from '../hooks/useAIContext';
 
 export const useAI = (): UseAIReturn => {
   // Simply delegate to the AI context
