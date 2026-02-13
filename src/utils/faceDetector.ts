@@ -57,16 +57,11 @@ export class FaceDetector {
         return;
       }
 
-      // TEMPORARY: Skip model loading to prevent infinite loop
-      // The main AI system should handle BlazeFace model loading
-      console.log('Face detector initialized without model (using main AI system)');
+      // Skip model loading - the AI context should provide the model
+      // This prevents duplicate model loading
+      console.log('Face detector initialized without model (expecting model from AI context)');
       this.isInitialized = true;
       this.updateStats();
-      
-      // OLD CODE - causing infinite loop:
-      // console.log('Initializing BlazeFace model...');
-      // this.model = await blazeface.load();
-      // console.log('BlazeFace model loaded successfully');
       
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
