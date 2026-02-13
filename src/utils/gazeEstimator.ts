@@ -1,4 +1,4 @@
-import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
+// Note: Gaze estimation now uses Transformers.js models through AI context
 import type {
   GazeEstimation,
   GazeVector,
@@ -7,11 +7,11 @@ import type {
   GazeConfig,
   GazeStats,
   CalibrationData,
-  CalibrationPoint,
   GazeZone,
   EnhancedGazeEstimation,
-  EYE_LANDMARK_INDICES
 } from '../types/gazeDetection';
+import { EYE_LANDMARK_INDICES } from '../types/gazeDetection';
+
 
 export class GazeEstimator {
   private config: GazeConfig;

@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { GazeEstimator } from './gazeEstimator';
 import { loadAIModel } from './aiModelLoader';
-import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
+// Note: Gaze estimation now uses Transformers.js models through AI context
 import type {
   GazeConfig,
   GazeStats,
@@ -69,10 +69,9 @@ export const useGazeEstimator = (
       console.log('Loading FaceMesh model for gaze estimation...');
       setModelLoadingProgress(20);
 
-      const model = await loadAIModel('facemesh', {
-        refineLandmarks: true,
-        maxFaces: 1
-      }) as faceLandmarksDetection.FaceLandmarksDetector;
+      const model = await loadAIModel('face-detection', {
+        threshold: 0.75
+      });
 
       setModelLoadingProgress(80);
 

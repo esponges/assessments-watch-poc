@@ -1,11 +1,11 @@
 export interface FaceDetectionResult {
   faces: DetectedFace[];
-  frameData: {
-    width: number;
-    height: number;
-    timestamp: number;
-  };
+  timestamp: number;
+  frameWidth: number;
+  frameHeight: number;
   processingTime: number;
+  confidence: number;
+  error: string | null;
 }
 
 export interface DetectedFace {

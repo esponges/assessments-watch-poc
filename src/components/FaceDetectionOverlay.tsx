@@ -34,8 +34,8 @@ const FaceDetectionOverlay: React.FC<FaceDetectionOverlayProps> = ({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Calculate scale factors
-    const scaleX = canvas.width / faceDetection.frameData.width;
-    const scaleY = canvas.height / faceDetection.frameData.height;
+    const scaleX = canvas.width / faceDetection.frameWidth;
+    const scaleY = canvas.height / faceDetection.frameHeight;
 
     // Draw face bounding boxes
     faceDetection.faces.forEach((face, index) => {

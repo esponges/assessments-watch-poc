@@ -1,4 +1,4 @@
-import * as tf from '@tensorflow/tfjs';
+// Note: Frame extraction now works without TensorFlow.js dependency
 import { createFaceDetector, type FaceDetector } from './faceDetector';
 import type {
   FrameData,
@@ -120,11 +120,14 @@ export const createCanvasUtils = (width: number, height: number, enableDebug: bo
   return utils;
 };
 
-// Convert ImageData to TensorFlow.js tensor
-export const imageDataToTensor = (imageData: ImageData): tf.Tensor3D => {
-  // Convert ImageData to tensor (height, width, channels)
-  const tensor = tf.browser.fromPixels(imageData, 3);
-  return tensor as tf.Tensor3D;
+// Convert ImageData to HTMLCanvasElement (Transformers.js compatible)
+export const imageDataToCanvas = (imageData: ImageData): HTMLCanvasElement => {
+  const canvas = document.createElement('canvas');
+  canvas.width = imageData.width;
+  canvas.height = imageData.height;
+  const ctx = canvas.getContext('2d')!;
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
 };
 
 // Create frame data object

@@ -56,7 +56,7 @@ export class FaceCounter {
   }
 
   processDetection(detection: FaceDetectionResult): FaceCountStatus {
-    const timestamp = detection.frameData.timestamp;
+    const timestamp = detection.timestamp;
     
     // Count faces above confidence threshold
     const reliableFaces = detection.faces.filter(
