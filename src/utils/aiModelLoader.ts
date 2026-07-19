@@ -1,4 +1,4 @@
-import { pipeline, env, Pipeline } from '@xenova/transformers';
+import { pipeline, env } from '@huggingface/transformers';
 import type { AIModelType, ModelConfig, ModelLoadingState } from '../types/ai';
 
 // Configure Transformers.js environment
@@ -11,15 +11,15 @@ export const MODEL_CONFIGS: Record<AIModelType, ModelConfig> = {
     name: 'DETR Object Detection',
     type: 'object-detection',
     url: 'Xenova/detr-resnet-50',
-    required: true,
-    description: 'DETR model for object detection including face detection'
+    required: false,
+    description: 'DETR model for object detection'
   },
   'face-detection': {
-    name: 'DETR Face Detection',
-    type: 'face-detection', 
-    url: 'Xenova/detr-resnet-50',
+    name: 'CLIP Zero-shot Classification',
+    type: 'face-detection',
+    url: 'Xenova/clip-vit-base-patch32',
     required: true,
-    description: 'DETR model for face detection'
+    description: 'CLIP model for zero-shot image-text reasoning'
   },
   'pose-estimation': {
     name: 'OWL-ViT Zero-shot Detection',
@@ -80,9 +80,10 @@ export const loadAIModel = async (
       const task = getTaskFromModelType(modelType);
       
       // Load model using Transformers.js pipeline
+      const dtype = modelType === 'face-detection' ? 'q8' : 'fp32';
       const model = await pipeline(task as any, config.url, {
         ...options,
-        dtype: 'fp32'
+        dtype,
       });
 
       console.log(`${config.name} loaded successfully`);
@@ -106,8 +107,8 @@ export const loadAIModel = async (
 const getTaskFromModelType = (modelType: AIModelType): string => {
   const taskMap: Record<AIModelType, string> = {
     'object-detection': 'object-detection',
-    'face-detection': 'object-detection', 
-    'pose-estimation': 'zero-shot-object-detection', // OWL-ViT uses zero-shot detection
+    'face-detection': 'zero-shot-image-classification',
+    'pose-estimation': 'zero-shot-object-detection',
     'image-classification': 'image-classification'
   };
   
