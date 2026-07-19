@@ -1,153 +1,82 @@
-import { useState, useCallback, useEffect } from 'react';
-import QuestionDisplay from '../components/QuestionDisplay';
-import ProgressIndicator from '../components/ProgressIndicator';
-import AssessmentTimer from '../components/AssessmentTimer';
-import AssessmentResults from '../components/AssessmentResults';
-import { useAssessmentLogic } from '../utils/useAssessmentLogic';
-import { useAssessmentLogger } from '../utils/useAssessmentLogger';
-import { DEFAULT_ASSESSMENT_CONFIG } from '../data/questionBank';
-import type { AssessmentResult } from '../types/assessment';
-import './Assessment.css';
-
-type AssessmentPhase = 'assessment' | 'results';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useModels } from '../hooks/useModel';
 
 const AssessmentStart: React.FC = () => {
-  const [currentPhase, setCurrentPhase] = useState<AssessmentPhase>('assessment');
-  const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null);
+  const navigate = useNavigate();
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const { isLoading: modelsLoading, isSuccess: modelsReady, isError: modelsError } = useModels();
 
-  // Assessment logic
-  const assessmentLogic = useAssessmentLogic({
-    config: {
-      ...DEFAULT_ASSESSMENT_CONFIG,
-      totalTimeLimit: 1200, // 20 minutes
-      timePerQuestion: 120, // 2 minutes per question
-      warningTimeRemaining: 300 // 5 minute warning
-    },
-    questionCount: 10,
-    onSessionStart: (session) => {
-      console.log('Assessment session started:', session);
-    },
-    onQuestionAnswer: (answer, progress) => {
-      console.log('Question answered:', answer, 'Progress:', progress);
-    },
-    onSessionComplete: (result) => {
-      console.log('Assessment completed:', result);
-      setAssessmentResult(result);
-      setCurrentPhase('results');
-    },
-    onTimeWarning: (timeRemaining) => {
-      console.log('Time warning:', timeRemaining);
-    },
-    onTimeUp: () => {
-      console.log('Time is up!');
-    }
-  });
-
-
-  const handleRestartAssessment = useCallback(() => {
-    console.log('Restarting assessment...');
-    setAssessmentResult(null);
-    setCurrentPhase('assessment');
-    assessmentLogic.resetAssessment();
-  }, [assessmentLogic]);
-
-  const handleExitAssessment = useCallback(() => {
-    console.log('Exiting to dashboard...');
-    setCurrentPhase('assessment');
-    setAssessmentResult(null);
-    assessmentLogic.resetAssessment();
-  }, [assessmentLogic]);
-
-  const handleDownloadReport = useCallback(() => {
-    if (!assessmentResult) return;
-    
-    const report = {
-      assessment: assessmentResult,
-      session: assessmentLogic.session,
-      timestamp: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(report, null, 2)], {
-      type: 'application/json'
-    });
-    
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `assessment_report_${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    console.log('Assessment report downloaded');
-  }, [assessmentResult, assessmentLogic.session]);
-
-  // Auto-start the assessment when component mounts
+  // Get camera permission
   useEffect(() => {
-    assessmentLogic.startAssessment(10);
-  }, [assessmentLogic]);
+    const getCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: false 
+        });
+        setCameraStream(stream);
+        console.log('Camera permission granted');
+      } catch (error) {
+        console.error('Camera permission denied:', error);
+      }
+    };
 
-  const renderCurrentPhase = () => {
-    switch (currentPhase) {
-      case 'assessment':
-        return (
-          <div className="assessment-interface">
-            <div className="assessment-header">
-              <ProgressIndicator 
-                progress={assessmentLogic.progress!}
-                showTimeWarning={assessmentLogic.timeRemaining <= assessmentLogic.config.warningTimeRemaining}
-              />
-              
-              <AssessmentTimer 
-                timeRemaining={assessmentLogic.timeRemaining}
-                totalTime={assessmentLogic.config.totalTimeLimit}
-                isWarning={assessmentLogic.timeRemaining <= assessmentLogic.config.warningTimeRemaining}
-                isPaused={assessmentLogic.isPaused}
-                onTimeUp={() => {
-                  console.log('Timer expired, completing assessment');
-                  assessmentLogic.completeAssessment();
-                }}
-              />
-            </div>
-            
-            {assessmentLogic.currentQuestion && (
-              <QuestionDisplay 
-                question={assessmentLogic.currentQuestion}
-                questionNumber={assessmentLogic.progress!.currentQuestion}
-                totalQuestions={assessmentLogic.progress!.totalQuestions}
-                selectedAnswer={assessmentLogic.selectedAnswer}
-                timeRemaining={Math.min(
-                  assessmentLogic.timeRemaining,
-                  assessmentLogic.currentQuestion.timeLimit || assessmentLogic.config.timePerQuestion
-                )}
-                onAnswerSelect={assessmentLogic.selectAnswer}
-                onSubmit={assessmentLogic.submitAnswer}
-                isLastQuestion={assessmentLogic.progress!.currentQuestion === assessmentLogic.progress!.totalQuestions}
-                canSubmit={assessmentLogic.canSubmitAnswer}
-              />
-            )}
-          </div>
-        );
-        
-      case 'results':
-        return assessmentResult ? (
-          <AssessmentResults 
-            result={assessmentResult}
-            onRestart={handleRestartAssessment}
-            onExit={handleExitAssessment}
-            onDownloadReport={handleDownloadReport}
-          />
-        ) : null;
-        
-      default:
-        return null;
+    getCamera();
+
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const handleStartAssessment = () => {
+    if (modelsReady && cameraStream) {
+      navigate('/assessment');
     }
   };
 
+  const isReady = modelsReady && cameraStream !== null;
+
   return (
-    <div className="assessment">
-      {renderCurrentPhase()}
+    <div className="assessment-start">
+      <h1>Assessment Setup</h1>
+      
+      <div className="setup-checklist">
+        <h3>System Check</h3>
+        
+        <div className={`check-item ${modelsReady ? 'ready' : 'loading'}`}>
+          <span>🤖 AI Models: </span>
+          {modelsLoading && <span>Loading...</span>}
+          {modelsReady && <span>✅ Ready</span>}
+          {modelsError && <span>❌ Error</span>}
+        </div>
+        
+        <div className={`check-item ${cameraStream ? 'ready' : 'loading'}`}>
+          <span>📹 Camera: </span>
+          {cameraStream ? <span>✅ Connected</span> : <span>⏳ Requesting permission...</span>}
+        </div>
+      </div>
+
+      {isReady && (
+        <div className="ready-section">
+          <h3>✅ System Ready</h3>
+          <p>All systems are operational. You may begin the assessment.</p>
+          <button 
+            onClick={handleStartAssessment}
+            className="start-button"
+          >
+            Start Assessment
+          </button>
+        </div>
+      )}
+
+      {!isReady && (
+        <div className="waiting-section">
+          <p>Please wait while we prepare the assessment system...</p>
+        </div>
+      )}
     </div>
   );
 };
