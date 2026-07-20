@@ -1,3 +1,22 @@
+## Project: assessments-watch-poc
+
+**What it is:** A browser-based POC for monitoring students during online assessments using on-device AI — no server-side video processing, no privacy exposure.
+
+**What was built:**
+- `/minimal` route (`src/pages/AssessmentMinimal.tsx`) — the main POC page with two parallel inference pipelines:
+  - **CLIP** (`Xenova/clip-vit-base-patch32`, q8) via `@huggingface/transformers` v3: scene-level signals — multiple people visible, nobody present, person facing camera.
+  - **MediaPipe FaceLandmarker** (478-point mesh, iris indices 468/473): geometric gaze analysis — head yaw from nose/eye-midpoint offset, iris offset from eye-centre deviation. Fires every 3 s via `setInterval`.
+- Detection runs entirely client-side via WebAssembly; SharedArrayBuffer enabled with COOP (`same-origin`) + COEP (`credentialless`) headers in `vite.config.ts`.
+- `useModel('face-detection')` hook (React Query) manages CLIP loading/caching.
+
+**Key thresholds to tune:** `HEAD_YAW_THRESHOLD = 0.10`, `IRIS_THRESHOLD = 0.15` in `AssessmentMinimal.tsx`.
+
+**Primary anti-cheat target:** second-monitor detection via gaze — identified as the biggest cheating vector.
+
+**Status:** POC working end-to-end; thresholds and UX need real-world calibration before production use.
+
+---
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
